@@ -276,12 +276,12 @@ var FirebaseReporting = function () {
   }, {
     key: 'refData',
     value: function refData() {
-      return this.firebase.database.ref(this.paths.data);
+      return this.firebase.database().ref(this.paths.data);
     }
   }, {
     key: 'refUserReporting',
     value: function refUserReporting() {
-      return this.firebase.database.ref(this.paths.reporting).child('users');
+      return this.firebase.database().ref(this.paths.reporting).child('users');
     }
   }, {
     key: 'refCurrentUserReporting',
