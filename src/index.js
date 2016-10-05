@@ -220,11 +220,11 @@ class FirebaseReporting {
   }
 
   refData() {
-    return this.firebase.database.ref(this.paths.data);
+    return this.firebase.database().ref(this.paths.data);
   }
 
   refUserReporting() {
-    return this.firebase.database.ref(this.paths.reporting).child('users');
+    return this.firebase.database().ref(this.paths.reporting).child('users');
   }
 
   refCurrentUserReporting() {
