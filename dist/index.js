@@ -14,6 +14,10 @@ var FirebaseReporting = function () {
   function FirebaseReporting(config) {
     _classCallCheck(this, FirebaseReporting);
 
+    if (!config) {
+      throw 'Must initialize with config';
+    }
+
     this.firebase = config.firebase;
     this.paths = {
       data: config.dataPath || 'data',
@@ -22,46 +26,39 @@ var FirebaseReporting = function () {
     this.filters = config.filters || [];
     this.queryFilter = [];
     this.queryData = {};
-    this.rules = {};
+    this.rules = config.metrics;
     this.evaluators = {};
 
-    this.initializeRules(config.metrics);
+    this.addEvaluator('max', function (newVal, oldVal) {
+      return newVal > oldVal ? newVal : null;
+    });
+    this.addEvaluator('min', function (newVal, oldVal) {
+      return newVal < oldVal ? newVal : null;
+    });
+    this.addEvaluator('first', function () {
+      return null;
+    });
+    this.addEvaluator('last', function (newVal) {
+      return newVal;
+    });
+    this.addEvaluator('sum', function (newVal, oldVal) {
+      return oldVal + newVal;
+    });
+    this.addEvaluator('diff', function (newVal, oldVal) {
+      return oldVal - newVal;
+    });
+    this.addEvaluator('multi', function (newVal, oldVal) {
+      return oldVal * newVal;
+    });
+    this.addEvaluator('div', function (newVal, oldVal) {
+      return oldVal / newVal;
+    });
   }
 
   _createClass(FirebaseReporting, [{
     key: 'addEvaluator',
     value: function addEvaluator(name, method) {
       this.evaluators[name] = method;
-    }
-  }, {
-    key: 'initializeRules',
-    value: function initializeRules(rules) {
-      this.rules = rules;
-      this.evaluators = {};
-      this.addEvaluator('max', function (newVal, oldVal) {
-        return newVal > oldVal ? newVal : null;
-      });
-      this.addEvaluator('min', function (newVal, oldVal) {
-        return newVal < oldVal ? newVal : null;
-      });
-      this.addEvaluator('first', function () {
-        return null;
-      });
-      this.addEvaluator('last', function (newVal) {
-        return newVal;
-      });
-      this.addEvaluator('sum', function (newVal, oldVal) {
-        return oldVal + newVal;
-      });
-      this.addEvaluator('diff', function (newVal, oldVal) {
-        return oldVal - newVal;
-      });
-      this.addEvaluator('multi', function (newVal, oldVal) {
-        return oldVal * newVal;
-      });
-      this.addEvaluator('div', function (newVal, oldVal) {
-        return oldVal / newVal;
-      });
     }
   }, {
     key: 'setQueryFilter',
@@ -72,9 +69,18 @@ var FirebaseReporting = function () {
   }, {
     key: 'saveMetrics',
     value: function saveMetrics(data) {
+      var promises = [];
+      promises.push(this.saveMetricsForData(data));
+      promises.push(this.saveMetricsForUser(data));
+      return _rsvp2.default.all(promises);
+    }
+  }, {
+    key: 'saveMetricsForData',
+    value: function saveMetricsForData(data) {
       var _this = this;
 
       var promises = [];
+      var ref = this.refDataReporting();
       for (var key in data) {
         if (this.rules[key]) {
           // need to store metrics for data
@@ -82,7 +88,7 @@ var FirebaseReporting = function () {
             if (_this.evaluators[metric]) {
               // run metric for each filter
               _this.filters.forEach(function (filter) {
-                promises.push(_this._calculateMetricValue(key, data[key], metric, _this.evaluators[metric], filter, data));
+                promises.push(_this._calculateMetricValue(ref, key, data[key], metric, _this.evaluators[metric], filter, data));
               });
             }
           });
@@ -91,18 +97,43 @@ var FirebaseReporting = function () {
       return _rsvp2.default.all(promises);
     }
   }, {
-    key: 'getMetrics',
-    value: function getMetrics() {
+    key: 'saveMetricsForUser',
+    value: function saveMetricsForUser(data, uid) {
       var _this2 = this;
 
+      uid = uid || this._getUserUID();
+      var ref = this.refUserReporting().child(uid);
+      var promises = [];
+      for (var key in data) {
+        if (this.rules[key]) {
+          // need to store metrics for data
+          this.rules[key].forEach(function (metric) {
+            if (_this2.evaluators[metric]) {
+              // run metric for each filter
+              _this2.filters.forEach(function (filter) {
+                promises.push(_this2._calculateMetricValue(ref, key, data[key], metric, _this2.evaluators[metric], filter, data));
+              });
+            }
+          });
+        }
+      }
+      return _rsvp2.default.all(promises);
+    }
+  }, {
+    key: 'getMetricsForUser',
+    value: function getMetricsForUser(uid) {
+      var _this3 = this;
+
+      uid = uid || this._getUserUID();
       var promise = new _rsvp2.default.Promise(function (resolve, reject) {
         var promises = [];
+        var ref = _this3.refUserReporting().child(uid);
         var metrics = {};
-        for (var key in _this2.rules) {
+        for (var key in _this3.rules) {
           metrics[key] = {};
-          _this2.rules[key].forEach(function (metric) {
-            if (_this2.evaluators[metric]) {
-              promises.push(_this2._captureMetricValue(key, metric, metrics));
+          _this3.rules[key].forEach(function (metric) {
+            if (_this3.evaluators[metric]) {
+              promises.push(_this3._captureMetricValue(ref, key, metric, metrics));
             } else {
               metrics[key][metric] = null;
             }
@@ -115,57 +146,70 @@ var FirebaseReporting = function () {
       return promise;
     }
   }, {
-    key: 'getTopMetrics',
-    value: function getTopMetrics(stat, evalName, total) {
-      return this._getGlobalMetrics(stat, evalName, 'last', total);
+    key: 'getDataMetricValues',
+    value: function getDataMetricValues(stat, evalName, limit, order) {
+      return this._getMetrics(this.refDataReporting(), stat, evalName, limit, order);
     }
   }, {
-    key: 'getBottomMetrics',
-    value: function getBottomMetrics(stat, evalName, total) {
-      return this._getGlobalMetrics(stat, evalName, 'first', total);
+    key: 'getUserMetricValues',
+    value: function getUserMetricValues(stat, evalName, limit, order) {
+      return this._getMetrics(this.refUserReporting(), stat, evalName, limit, order);
     }
   }, {
-    key: 'getAllMetrics',
-    value: function getAllMetrics(stat, evalName) {
-      return this._getGlobalMetrics(stat, evalName, 'all');
-    }
-  }, {
-    key: 'getTotal',
-    value: function getTotal(prop, comparision, value, otherValue) {
-      var _this3 = this;
-
+    key: '_getMetrics',
+    value: function _getMetrics(ref, stat, evalName, limit, order) {
+      limit = limit || 1;
+      var key = this._getStatKey(stat, evalName);
+      var values = [];
+      var query = ref.orderByChild(key);
+      if (order === 'desc') {
+        query = query.limitToLast(limit);
+      } else if (order === 'asc') {
+        query = query.limitToFirst(limit);
+      }
       var promise = new _rsvp2.default.Promise(function (resolve) {
-        var query = _this3.refData();
-        if (prop) {
-          query = query.orderByChild(prop);
-          switch (comparision) {
-            case 'lesser':
-              query = query.endAt(value);
-              break;
-            case 'greater':
-              query = query.startAt(value);
-              break;
-            case 'between':
-              query = query.startAt(value).endAt(otherValue);
-              break;
-            case 'equal':
-              query = query.startAt(value).endAt(value);
-              break;
+        query.on('child_added', function (snapshot) {
+          values.push(snapshot.child(key).val());
+          if (values.length === limit) {
+            done();
           }
-        }
-        query.once('value', function (snapshot) {
-          resolve(snapshot.numChildren());
         });
+
+        var done = function done() {
+          clearTimeout(timeout);
+          query.off('child_added');
+          if (order === 'desc') {
+            values.sort(function (a, b) {
+              return b - a;
+            });
+          } else if (order === 'asc') {
+            values.sort(function (a, b) {
+              return a - b;
+            });
+          }
+          resolve(values);
+        };
+        var timeout = setTimeout(done, 5000);
       });
       return promise;
     }
   }, {
-    key: 'getTotalUsers',
-    value: function getTotalUsers(stat, evalName, comparision, value, otherValue) {
+    key: 'getDataMetricTotals',
+    value: function getDataMetricTotals(stat, evalName, comparision, value, otherValue) {
+      return this._getTotalInternal(this.refDataReporting(), stat, evalName, comparision, value, otherValue);
+    }
+  }, {
+    key: 'getUserMetricTotals',
+    value: function getUserMetricTotals(stat, evalName, comparision, value, otherValue) {
+      return this._getTotalInternal(this.refUserReporting(), stat, evalName, comparision, value, otherValue);
+    }
+  }, {
+    key: '_getTotalInternal',
+    value: function _getTotalInternal(ref, stat, evalName, comparision, value, otherValue) {
       var _this4 = this;
 
       var promise = new _rsvp2.default.Promise(function (resolve) {
-        var query = _this4.refUserReporting();
+        var query = ref;
         if (stat) {
           var key = _this4._getStatKey(stat, evalName);
           query = query.orderByChild(key);
@@ -191,46 +235,11 @@ var FirebaseReporting = function () {
       return promise;
     }
   }, {
-    key: '_getGlobalMetrics',
-    value: function _getGlobalMetrics(stat, evalName, type, total) {
-      total = total || 1;
-      var key = this._getStatKey(stat, evalName);
-      var values = [];
-      var query = void 0;
-      if (type === 'last') {
-        query = this.refUserReporting().orderByChild(key).limitToLast(total);
-      } else if (type === 'first') {
-        query = this.refUserReporting().orderByChild(key).limitToFirst(total);
-      } else {
-        query = this.refUserReporting().orderByChild(key);
-      }
-      var promise = new _rsvp2.default.Promise(function (resolve) {
-        query.on('child_added', function (snapshot) {
-          values.push(snapshot.child(key).val());
-          if (values.length === total) {
-            done();
-          }
-        });
-
-        var done = function done() {
-          clearTimeout(timeout);
-          query.off('child_added');
-          values.sort(function (a, b) {
-            return b - a;
-          });
-          resolve(values);
-        };
-        var timeout = setTimeout(done, 5000);
-      });
-      return promise;
-    }
-  }, {
     key: '_captureMetricValue',
-    value: function _captureMetricValue(stat, evaluatorName, metrics) {
+    value: function _captureMetricValue(uid, stat, evaluatorName, metrics) {
       var key = this._getStatKey(stat, evaluatorName);
-      var ref = this.refCurrentUserReporting().child(key);
       var promise = new _rsvp2.default.Promise(function (resolve) {
-        ref.once('value', function (snapshot) {
+        ref.child(key).once('value', function (snapshot) {
           var val = snapshot.val();
           if (metrics) {
             metrics[stat][evaluatorName] = val;
@@ -242,10 +251,9 @@ var FirebaseReporting = function () {
     }
   }, {
     key: '_calculateMetricValue',
-    value: function _calculateMetricValue(stat, newVal, evaluatorName, evaluator, filter, filterData) {
+    value: function _calculateMetricValue(ref, stat, newVal, evaluatorName, evaluator, filter, filterData) {
       var key = this._getStatKey(stat, evaluatorName, filter, filterData);
-      var ref = this.refCurrentUserReporting().child(key);
-      return ref.transaction(function (oldVal) {
+      return ref.child(key).transaction(function (oldVal) {
         if (typeof oldVal === 'undefined') {
           return newVal;
         } else {
@@ -265,6 +273,7 @@ var FirebaseReporting = function () {
 
       var prefix = '';
       (filter || this.queryFilter).forEach(function (key) {
+        filterData += key + '~~';
         if (filterData) {
           prefix += filterData[key] + '~~';
         } else {
@@ -284,13 +293,18 @@ var FirebaseReporting = function () {
       return this.firebase.database().ref(this.paths.reporting).child('users');
     }
   }, {
-    key: 'refCurrentUserReporting',
-    value: function refCurrentUserReporting() {
+    key: 'refDataReporting',
+    value: function refDataReporting() {
+      return this.firebase.database().ref(this.paths.reporting).child('data');
+    }
+  }, {
+    key: '_getUserUID',
+    value: function _getUserUID() {
       var currentUser = this.firebase.auth().currentUser;
       if (currentUser) {
-        return this.refUserReporting().child(currentUser.uid);
+        return currentUser.uid;
       } else {
-        return this.refUserReporting().child('unknown');
+        return 'unknown';
       }
     }
   }]);
