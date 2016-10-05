@@ -1,6 +1,7 @@
 # firebase-reporting
 Client-side only solution to reporting in Firebase
 
+[![Build Status](https://travis-ci.org/greenhousegames/firebase-reporting.svg)](https://travis-ci.org/greenhousegames/firebase-reporting)
 [![npm version](https://badge.fury.io/js/firebase-reporting.svg)](https://badge.fury.io/js/firebase-reporting)
 
 ## Overview
