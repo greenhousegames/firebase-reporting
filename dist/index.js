@@ -80,7 +80,10 @@ var FirebaseReporting = function () {
           // need to store metrics for data
           this.rules[key].forEach(function (metric) {
             if (_this.evaluators[metric]) {
-              promises.push(_this._calculateMetricValue(key, data[key], metric, _this.evaluators[metric]));
+              // run metric for each filter
+              _this.filters.forEach(function (filter) {
+                promises.push(_this._calculateMetricValue(key, data[key], metric, _this.evaluators[metric], filter, data));
+              });
             }
           });
         }
@@ -239,34 +242,34 @@ var FirebaseReporting = function () {
     }
   }, {
     key: '_calculateMetricValue',
-    value: function _calculateMetricValue(stat, newVal, evaluatorName, evaluator) {
-      var key = this._getStatKey(stat, evaluatorName);
+    value: function _calculateMetricValue(stat, newVal, evaluatorName, evaluator, filter, filterData) {
+      var key = this._getStatKey(stat, evaluatorName, filter, filterData);
       var ref = this.refCurrentUserReporting().child(key);
-      var promise = new _rsvp2.default.Promise(function (resolve, reject) {
-        ref.once('value', function (snapshot) {
-          var oldVal = snapshot.val();
-          if (typeof oldVal === 'undefined') {
-            ref.set(newVal).then(resolve).catch(reject);
+      return ref.transaction(function (oldVal) {
+        if (typeof oldVal === 'undefined') {
+          return newVal;
+        } else {
+          var evalVal = evaluator(newVal, oldVal);
+          if (typeof evalVal !== 'undefined' && evalVal !== null) {
+            return evalVal;
           } else {
-            var evalVal = evaluator(newVal, oldVal);
-            if (typeof evalVal !== 'undefined' && evalVal !== null) {
-              ref.set(evalVal).then(resolve).catch(reject);
-            } else {
-              resolve();
-            }
+            return oldVal;
           }
-        });
+        }
       });
-      return promise;
     }
   }, {
     key: '_getStatKey',
-    value: function _getStatKey(stat, evalName) {
+    value: function _getStatKey(stat, evalName, filter, filterData) {
       var _this5 = this;
 
       var prefix = '';
-      this.queryFilter.forEach(function (key) {
-        prefix += _this5.queryData[key] + '~~';
+      (filter || this.queryFilter).forEach(function (key) {
+        if (filterData) {
+          prefix += filterData[key] + '~~';
+        } else {
+          prefix += _this5.queryData[key] + '~~';
+        }
       });
       return prefix + stat + '~~' + evalName;
     }
