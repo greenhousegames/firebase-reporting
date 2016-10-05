@@ -5,6 +5,9 @@ class FirebaseReporting {
     if (!config) {
       throw 'Must initialize with config';
     }
+    if (!config.firebase) {
+      throw 'Must initialize with firebase application';
+    }
 
     this.firebase = config.firebase;
     this.paths = {

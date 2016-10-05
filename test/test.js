@@ -40,14 +40,17 @@ describe('Firebase Reporting', () => {
     }
   });
 
-  function newFirebaseClient() {
+  function newFirebaseApp() {
 		var name = 'test-firebase-client-' + sequentialConnectionId;
 		var url = 'ws://dummy' + (sequentialConnectionId++) + '.firebaseio.test:' + PORT;
 		var config = {
 			databaseURL: url
 		};
-		var app = firebase.initializeApp(config, name);
-		return app.database().ref();
+		return firebase.initializeApp(config, name);
+	}
+
+  function newFirebaseClient() {
+		return newFirebaseApp().database().ref();
 	}
 
   function newFirebaseServer(data) {
@@ -92,6 +95,68 @@ describe('Firebase Reporting', () => {
     it('should throw with no config', () => {
       const create = () => new FirebaseReporting();
       expect(create).to.throw('Must initialize with config');
+  	});
+
+    it('should throw with no config.firebase', () => {
+      const create = () => new FirebaseReporting({});
+      expect(create).to.throw('Must initialize with firebase application');
+  	});
+
+    it('should initialize with firebase', () => {
+      const create = () => new FirebaseReporting({
+        firebase: newFirebaseApp()
+      });
+      expect(create).to.not.throw;
+  	});
+
+    it('should initialize with default paths', () => {
+      const reporting = new FirebaseReporting({
+        firebase: newFirebaseApp()
+      });
+      expect(reporting.paths.data).to.equal('data');
+      expect(reporting.paths.reporting).to.equal('reporting');
+  	});
+
+    it('should initialize with custom paths', () => {
+      const reporting = new FirebaseReporting({
+        firebase: newFirebaseApp(),
+        dataPath: 'dataPath',
+        reportingPath: 'reportingPath'
+      });
+      expect(reporting.paths.data).to.equal('dataPath');
+      expect(reporting.paths.reporting).to.equal('reportingPath');
+  	});
+
+    it('should initialize with default filters', () => {
+      const reporting = new FirebaseReporting({
+        firebase: newFirebaseApp()
+      });
+      expect(reporting.filters).to.deep.equal([]);
+  	});
+
+    it('should initialize with custom filters', () => {
+      const reporting = new FirebaseReporting({
+        firebase: newFirebaseApp(),
+        filters: [['uid']]
+      });
+      expect(reporting.filters.length).to.equal(1);
+      expect(reporting.filters[0]).to.deep.equal(['uid']);
+  	});
+
+    it('should initialize with default evaluators', () => {
+      const reporting = new FirebaseReporting({
+        firebase: newFirebaseApp()
+      });
+
+      expect(Object.keys(reporting.evaluators).length).to.equal(8);
+      expect(reporting.evaluators['min']).to.be.a('function');
+      expect(reporting.evaluators['max']).to.be.a('function');
+      expect(reporting.evaluators['first']).to.be.a('function');
+      expect(reporting.evaluators['last']).to.be.a('function');
+      expect(reporting.evaluators['sum']).to.be.a('function');
+      expect(reporting.evaluators['diff']).to.be.a('function');
+      expect(reporting.evaluators['multi']).to.be.a('function');
+      expect(reporting.evaluators['div']).to.be.a('function');
   	});
   });
 });
