@@ -8,6 +8,7 @@
     "build": "babel src/ -d dist/",
     "pretest": "npm run build",
     "test": "mocha --require babel-register --timeout 10000",
+    "preversion": "npm test",
     "version": "npm run build && git add -A dist",
     "postversion": "git push && git push --tags && npm publish"
   },
