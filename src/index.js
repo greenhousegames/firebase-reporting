@@ -2,6 +2,10 @@ import rsvp from 'rsvp';
 
 class FirebaseReporting {
   constructor(config) {
+    if (!config) {
+      throw 'Must initialize with config';
+    }
+
     this.firebase = config.firebase;
     this.paths = {
       data: config.dataPath || 'data',

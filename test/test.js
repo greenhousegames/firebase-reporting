@@ -16,6 +16,7 @@ var firebase = proxyquire('firebase', {
   }
 });
 var FirebaseServer = require('firebase-server');
+var FirebaseReporting = require('../dist');
 
 describe('Firebase Reporting', () => {
   var firebaseServer;
@@ -72,6 +73,25 @@ describe('Firebase Reporting', () => {
     			done();
     		});
       });
+  	});
+
+    it('client should read data from server written by other client', (done) => {
+      firebaseServer = newFirebaseServer();
+      const client1 = newFirebaseClient();
+      const client2 = newFirebaseClient();
+      client1.set('hello').then(() => {
+        client2.once('value').then((snap) => {
+          expect(snap.val()).to.equal('hello');
+    			done();
+    		});
+      });
+  	});
+  });
+
+  describe('Constructor', () => {
+    it('should throw with no config', () => {
+      const create = () => new FirebaseReporting();
+      expect(create).to.throw('Must initialize with config');
   	});
   });
 });
