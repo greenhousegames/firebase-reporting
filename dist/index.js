@@ -25,7 +25,7 @@ var FirebaseReporting = function () {
     this.rules = {};
     this.evaluators = {};
 
-    this.initializeRules(config.rules);
+    this.initializeRules(config.metrics);
   }
 
   _createClass(FirebaseReporting, [{
@@ -132,7 +132,7 @@ var FirebaseReporting = function () {
       var _this3 = this;
 
       var promise = new _rsvp2.default.Promise(function (resolve) {
-        var query = _this3._getDataRef();
+        var query = _this3.refData();
         if (prop) {
           query = query.orderByChild(prop);
           switch (comparision) {
@@ -162,7 +162,7 @@ var FirebaseReporting = function () {
       var _this4 = this;
 
       var promise = new _rsvp2.default.Promise(function (resolve) {
-        var query = _this4._getUserRef();
+        var query = _this4.refUserReporting();
         if (stat) {
           var key = _this4._getStatKey(stat, evalName);
           query = query.orderByChild(key);
@@ -195,11 +195,11 @@ var FirebaseReporting = function () {
       var values = [];
       var query = void 0;
       if (type === 'last') {
-        query = this._getUserRef().orderByChild(key).limitToLast(total);
+        query = this.refUserReporting().orderByChild(key).limitToLast(total);
       } else if (type === 'first') {
-        query = this._getUserRef().orderByChild(key).limitToFirst(total);
+        query = this.refUserReporting().orderByChild(key).limitToFirst(total);
       } else {
-        query = this._getUserRef().orderByChild(key);
+        query = this.refUserReporting().orderByChild(key);
       }
       var promise = new _rsvp2.default.Promise(function (resolve) {
         query.on('child_added', function (snapshot) {
@@ -225,7 +225,7 @@ var FirebaseReporting = function () {
     key: '_captureMetricValue',
     value: function _captureMetricValue(stat, evaluatorName, metrics) {
       var key = this._getStatKey(stat, evaluatorName);
-      var ref = this._getLoggedInUserRef().child(key);
+      var ref = this.refCurrentUserReporting().child(key);
       var promise = new _rsvp2.default.Promise(function (resolve) {
         ref.once('value', function (snapshot) {
           var val = snapshot.val();
@@ -241,7 +241,7 @@ var FirebaseReporting = function () {
     key: '_calculateMetricValue',
     value: function _calculateMetricValue(stat, newVal, evaluatorName, evaluator) {
       var key = this._getStatKey(stat, evaluatorName);
-      var ref = this._getLoggedInUserRef().child(key);
+      var ref = this.refCurrentUserReporting().child(key);
       var promise = new _rsvp2.default.Promise(function (resolve, reject) {
         ref.once('value', function (snapshot) {
           var oldVal = snapshot.val();
@@ -271,23 +271,23 @@ var FirebaseReporting = function () {
       return prefix + stat + '~~' + evalName;
     }
   }, {
-    key: '_getDataRef',
-    value: function _getDataRef() {
+    key: 'refData',
+    value: function refData() {
       return this.firebase.database.ref(this.paths.data);
     }
   }, {
-    key: '_getUserRef',
-    value: function _getUserRef() {
+    key: 'refUserReporting',
+    value: function refUserReporting() {
       return this.firebase.database.ref(this.paths.reporting).child('users');
     }
   }, {
-    key: '_getLoggedInUserRef',
-    value: function _getLoggedInUserRef() {
+    key: 'refCurrentUserReporting',
+    value: function refCurrentUserReporting() {
       var currentUser = this.firebase.auth().currentUser;
       if (currentUser) {
-        return this._getUserRef().child(currentUser.uid);
+        return this.refUserReporting().child(currentUser.uid);
       } else {
-        return this._getUserRef().child('unknown');
+        return this.refUserReporting().child('unknown');
       }
     }
   }]);
