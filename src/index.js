@@ -13,7 +13,7 @@ class FirebaseReporting {
     this.rules = {};
     this.evaluators = {};
 
-    this.initializeRules(config.rules);
+    this.initializeRules(config.metrics);
   }
 
   addEvaluator(name, method) {
@@ -88,7 +88,7 @@ class FirebaseReporting {
 
   getTotal(prop, comparision, value, otherValue) {
     const promise = new rsvp.Promise((resolve) => {
-      let query = this._getDataRef();
+      let query = this.refData();
       if (prop) {
         query = query.orderByChild(prop);
         switch (comparision) {
@@ -115,7 +115,7 @@ class FirebaseReporting {
 
   getTotalUsers(stat, evalName, comparision, value, otherValue) {
     const promise = new rsvp.Promise((resolve) => {
-      let query = this._getUserRef();
+      let query = this.refUserReporting();
       if (stat) {
         const key = this._getStatKey(stat, evalName);
         query = query.orderByChild(key);
@@ -147,11 +147,11 @@ class FirebaseReporting {
     const values = [];
     let query;
     if (type === 'last') {
-      query = this._getUserRef().orderByChild(key).limitToLast(total);
+      query = this.refUserReporting().orderByChild(key).limitToLast(total);
     } else if (type === 'first') {
-      query = this._getUserRef().orderByChild(key).limitToFirst(total);
+      query = this.refUserReporting().orderByChild(key).limitToFirst(total);
     } else {
-      query = this._getUserRef().orderByChild(key);
+      query = this.refUserReporting().orderByChild(key);
     }
     const promise = new rsvp.Promise((resolve) => {
       query.on('child_added', (snapshot) => {
@@ -174,7 +174,7 @@ class FirebaseReporting {
 
   _captureMetricValue(stat, evaluatorName, metrics) {
     const key = this._getStatKey(stat, evaluatorName);
-    const ref = this._getLoggedInUserRef().child(key);
+    const ref = this.refCurrentUserReporting().child(key);
     const promise = new rsvp.Promise((resolve) => {
       ref.once('value', (snapshot) => {
         const val = snapshot.val();
@@ -189,7 +189,7 @@ class FirebaseReporting {
 
   _calculateMetricValue(stat, newVal, evaluatorName, evaluator) {
     const key = this._getStatKey(stat, evaluatorName);
-    const ref = this._getLoggedInUserRef().child(key);
+    const ref = this.refCurrentUserReporting().child(key);
     const promise = new rsvp.Promise((resolve, reject) => {
       ref.once('value', (snapshot) => {
         const oldVal = snapshot.val();
@@ -216,20 +216,20 @@ class FirebaseReporting {
     return prefix + stat + '~~' + evalName;
   }
 
-  _getDataRef() {
+  refData() {
     return this.firebase.database.ref(this.paths.data);
   }
 
-  _getUserRef() {
+  refUserReporting() {
     return this.firebase.database.ref(this.paths.reporting).child('users');
   }
 
-  _getLoggedInUserRef() {
+  refCurrentUserReporting() {
     const currentUser = this.firebase.auth().currentUser;
     if (currentUser) {
-      return this._getUserRef().child(currentUser.uid);
+      return this.refUserReporting().child(currentUser.uid);
     } else {
-      return this._getUserRef().child('unknown');
+      return this.refUserReporting().child('unknown');
     }
   }
 }
