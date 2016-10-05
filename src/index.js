@@ -193,22 +193,18 @@ class FirebaseReporting {
   _calculateMetricValue(stat, newVal, evaluatorName, evaluator, filter, filterData) {
     const key = this._getStatKey(stat, evaluatorName, filter, filterData);
     const ref = this.refCurrentUserReporting().child(key);
-    const promise = new rsvp.Promise((resolve, reject) => {
-      ref.once('value', (snapshot) => {
-        const oldVal = snapshot.val();
-        if (typeof oldVal === 'undefined') {
-          ref.set(newVal).then(resolve).catch(reject);
+    return ref.transaction((oldVal) => {
+      if (typeof oldVal === 'undefined') {
+        return newVal;
+      } else {
+        const evalVal = evaluator(newVal, oldVal);
+        if (typeof evalVal !== 'undefined' && evalVal !== null) {
+          return evalVal;
         } else {
-          const evalVal = evaluator(newVal, oldVal);
-          if (typeof evalVal !== 'undefined' && evalVal !== null) {
-            ref.set(evalVal).then(resolve).catch(reject);
-          } else {
-            resolve();
-          }
+          return oldVal;
         }
-      });
+      }
     });
-    return promise;
   }
 
   _getStatKey(stat, evalName, filter, filterData) {
