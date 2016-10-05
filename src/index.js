@@ -45,7 +45,10 @@ class FirebaseReporting {
         // need to store metrics for data
         this.rules[key].forEach((metric) => {
           if (this.evaluators[metric]) {
-            promises.push(this._calculateMetricValue(key, data[key], metric, this.evaluators[metric]));
+            // run metric for each filter
+            this.filters.forEach((filter) => {
+              promises.push(this._calculateMetricValue(key, data[key], metric, this.evaluators[metric], filter, data));
+            });
           }
         });
       }
@@ -187,8 +190,8 @@ class FirebaseReporting {
     return promise;
   }
 
-  _calculateMetricValue(stat, newVal, evaluatorName, evaluator) {
-    const key = this._getStatKey(stat, evaluatorName);
+  _calculateMetricValue(stat, newVal, evaluatorName, evaluator, filter, filterData) {
+    const key = this._getStatKey(stat, evaluatorName, filter, filterData);
     const ref = this.refCurrentUserReporting().child(key);
     const promise = new rsvp.Promise((resolve, reject) => {
       ref.once('value', (snapshot) => {
@@ -208,10 +211,14 @@ class FirebaseReporting {
     return promise;
   }
 
-  _getStatKey(stat, evalName) {
+  _getStatKey(stat, evalName, filter, filterData) {
     let prefix = '';
-    this.queryFilter.forEach((key) => {
-      prefix += this.queryData[key] + '~~';
+    (filter || this.queryFilter).forEach((key) => {
+      if (filterData) {
+        prefix += filterData[key] + '~~';
+      } else {
+        prefix += this.queryData[key] + '~~';
+      }
     });
     return prefix + stat + '~~' + evalName;
   }
