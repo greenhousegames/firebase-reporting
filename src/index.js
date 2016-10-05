@@ -10,19 +10,9 @@ class FirebaseReporting {
     this.filters = config.filters || [];
     this.queryFilter = [];
     this.queryData = {};
-    this.rules = {};
+    this.rules = config.metrics;
     this.evaluators = {};
 
-    this.initializeRules(config.metrics);
-  }
-
-  addEvaluator(name, method) {
-    this.evaluators[name] = method;
-  }
-
-  initializeRules(rules) {
-    this.rules = rules;
-    this.evaluators = {};
     this.addEvaluator('max', (newVal, oldVal) => newVal > oldVal ? newVal : null);
     this.addEvaluator('min', (newVal, oldVal) => newVal < oldVal ? newVal : null);
     this.addEvaluator('first', () => null);
@@ -33,6 +23,10 @@ class FirebaseReporting {
     this.addEvaluator('div', (newVal, oldVal) => oldVal / newVal);
   }
 
+  addEvaluator(name, method) {
+    this.evaluators[name] = method;
+  }
+
   setQueryFilter(filter, data) {
     this.queryFilter = filter;
     this.queryData = data;
@@ -40,6 +34,14 @@ class FirebaseReporting {
 
   saveMetrics(data) {
     const promises = [];
+    promises.push(this.saveMetricsForData(data));
+    promises.push(this.saveMetricsForUser(data));
+    return rsvp.all(promises);
+  }
+
+  saveMetricsForData(data) {
+    const promises = [];
+    const ref = this.refDataReporting();
     for (var key in data) {
       if (this.rules[key]) {
         // need to store metrics for data
@@ -47,7 +49,7 @@ class FirebaseReporting {
           if (this.evaluators[metric]) {
             // run metric for each filter
             this.filters.forEach((filter) => {
-              promises.push(this._calculateMetricValue(key, data[key], metric, this.evaluators[metric], filter, data));
+              promises.push(this._calculateMetricValue(ref, key, data[key], metric, this.evaluators[metric], filter, data));
             });
           }
         });
@@ -56,15 +58,37 @@ class FirebaseReporting {
     return rsvp.all(promises);
   }
 
-  getMetrics() {
+  saveMetricsForUser(data, uid) {
+    uid = uid || this._getUserUID();
+    const ref = this.refUserReporting().child(uid);
+    const promises = [];
+    for (var key in data) {
+      if (this.rules[key]) {
+        // need to store metrics for data
+        this.rules[key].forEach((metric) => {
+          if (this.evaluators[metric]) {
+            // run metric for each filter
+            this.filters.forEach((filter) => {
+              promises.push(this._calculateMetricValue(ref, key, data[key], metric, this.evaluators[metric], filter, data));
+            });
+          }
+        });
+      }
+    }
+    return rsvp.all(promises);
+  }
+
+  getMetricsForUser(uid) {
+    uid = uid || this._getUserUID();
     const promise = new rsvp.Promise((resolve, reject) => {
       const promises = [];
+      const ref = this.refUserReporting().child(uid);
       const metrics = {};
       for (var key in this.rules) {
         metrics[key] = {};
         this.rules[key].forEach((metric) => {
           if (this.evaluators[metric]) {
-            promises.push(this._captureMetricValue(key, metric, metrics));
+            promises.push(this._captureMetricValue(ref, key, metric, metrics));
           } else {
             metrics[key][metric] = null;
           }
@@ -77,48 +101,58 @@ class FirebaseReporting {
     return promise;
   }
 
-  getTopMetrics(stat, evalName, total) {
-    return this._getGlobalMetrics(stat, evalName, 'last', total);
+  getDataMetricValues(stat, evalName, limit, order) {
+    return this._getMetrics(this.refDataReporting(), stat, evalName, limit, order);
   }
 
-  getBottomMetrics(stat, evalName, total) {
-    return this._getGlobalMetrics(stat, evalName, 'first', total);
+  getUserMetricValues(stat, evalName, limit, order) {
+    return this._getMetrics(this.refUserReporting(), stat, evalName, limit, order);
   }
 
-  getAllMetrics(stat, evalName) {
-    return this._getGlobalMetrics(stat, evalName, 'all');
-  }
-
-  getTotal(prop, comparision, value, otherValue) {
+  _getMetrics(ref, stat, evalName, limit, order) {
+    limit = limit || 1;
+    const key = this._getStatKey(stat, evalName);
+    const values = [];
+    let query = ref.orderByChild(key);
+    if (order === 'desc') {
+      query = query.limitToLast(limit);
+    } else if (order === 'asc') {
+      query = query.limitToFirst(limit);
+    }
     const promise = new rsvp.Promise((resolve) => {
-      let query = this.refData();
-      if (prop) {
-        query = query.orderByChild(prop);
-        switch (comparision) {
-          case 'lesser':
-            query = query.endAt(value);
-            break;
-          case 'greater':
-            query = query.startAt(value);
-            break;
-          case 'between':
-            query = query.startAt(value).endAt(otherValue);
-            break;
-          case 'equal':
-            query = query.startAt(value).endAt(value);
-            break;
+      query.on('child_added', (snapshot) => {
+        values.push(snapshot.child(key).val());
+        if (values.length === limit) {
+          done();
         }
-      }
-      query.once('value', (snapshot) => {
-        resolve(snapshot.numChildren());
       });
+
+      const done = () => {
+        clearTimeout(timeout);
+        query.off('child_added');
+        if (order === 'desc') {
+          values.sort((a, b) => b - a);
+        } else if (order === 'asc') {
+          values.sort((a, b) => a - b);
+        }
+        resolve(values);
+      };
+      const timeout = setTimeout(done, 5000);
     });
     return promise;
   }
 
-  getTotalUsers(stat, evalName, comparision, value, otherValue) {
+  getDataMetricTotals(stat, evalName, comparision, value, otherValue) {
+    return this._getTotalInternal(this.refDataReporting(), stat, evalName, comparision, value, otherValue);
+  }
+
+  getUserMetricTotals(stat, evalName, comparision, value, otherValue) {
+    return this._getTotalInternal(this.refUserReporting(), stat, evalName, comparision, value, otherValue);
+  }
+
+  _getTotalInternal(ref, stat, evalName, comparision, value, otherValue) {
     const promise = new rsvp.Promise((resolve) => {
-      let query = this.refUserReporting();
+      let query = ref;
       if (stat) {
         const key = this._getStatKey(stat, evalName);
         query = query.orderByChild(key);
@@ -144,42 +178,10 @@ class FirebaseReporting {
     return promise;
   }
 
-  _getGlobalMetrics(stat, evalName, type, total) {
-    total = total || 1;
-    const key = this._getStatKey(stat, evalName);
-    const values = [];
-    let query;
-    if (type === 'last') {
-      query = this.refUserReporting().orderByChild(key).limitToLast(total);
-    } else if (type === 'first') {
-      query = this.refUserReporting().orderByChild(key).limitToFirst(total);
-    } else {
-      query = this.refUserReporting().orderByChild(key);
-    }
-    const promise = new rsvp.Promise((resolve) => {
-      query.on('child_added', (snapshot) => {
-        values.push(snapshot.child(key).val());
-        if (values.length === total) {
-          done();
-        }
-      });
-
-      const done = () => {
-        clearTimeout(timeout);
-        query.off('child_added');
-        values.sort((a, b) => b - a);
-        resolve(values);
-      };
-      const timeout = setTimeout(done, 5000);
-    });
-    return promise;
-  }
-
-  _captureMetricValue(stat, evaluatorName, metrics) {
+  _captureMetricValue(uid, stat, evaluatorName, metrics) {
     const key = this._getStatKey(stat, evaluatorName);
-    const ref = this.refCurrentUserReporting().child(key);
     const promise = new rsvp.Promise((resolve) => {
-      ref.once('value', (snapshot) => {
+      ref.child(key).once('value', (snapshot) => {
         const val = snapshot.val();
         if (metrics) {
           metrics[stat][evaluatorName] = val;
@@ -190,10 +192,9 @@ class FirebaseReporting {
     return promise;
   }
 
-  _calculateMetricValue(stat, newVal, evaluatorName, evaluator, filter, filterData) {
+  _calculateMetricValue(ref, stat, newVal, evaluatorName, evaluator, filter, filterData) {
     const key = this._getStatKey(stat, evaluatorName, filter, filterData);
-    const ref = this.refCurrentUserReporting().child(key);
-    return ref.transaction((oldVal) => {
+    return ref.child(key).transaction((oldVal) => {
       if (typeof oldVal === 'undefined') {
         return newVal;
       } else {
@@ -210,6 +211,7 @@ class FirebaseReporting {
   _getStatKey(stat, evalName, filter, filterData) {
     let prefix = '';
     (filter || this.queryFilter).forEach((key) => {
+      filterData += key + '~~';
       if (filterData) {
         prefix += filterData[key] + '~~';
       } else {
@@ -227,12 +229,16 @@ class FirebaseReporting {
     return this.firebase.database().ref(this.paths.reporting).child('users');
   }
 
-  refCurrentUserReporting() {
+  refDataReporting() {
+    return this.firebase.database().ref(this.paths.reporting).child('data');
+  }
+
+  _getUserUID() {
     const currentUser = this.firebase.auth().currentUser;
     if (currentUser) {
-      return this.refUserReporting().child(currentUser.uid);
+      return currentUser.uid;
     } else {
-      return this.refUserReporting().child('unknown');
+      return 'unknown';
     }
   }
 }

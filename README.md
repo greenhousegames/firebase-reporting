@@ -1,6 +1,8 @@
 # firebase-reporting
 Client-side only solution to reporting in Firebase
 
+[![npm version](https://badge.fury.io/js/firebase-reporting.svg)](https://badge.fury.io/js/firebase-reporting)
+
 ## Overview
 Firebase Reporting provides the ability to generate reports on data stored in firebase without needing an alternate reporting database or server!  Firebase reporting does all metric calculations on the client using transactions in firebase, ensuring the metrics are reliably calculated regardless of the number of clients attempting to updated the reports.
 
