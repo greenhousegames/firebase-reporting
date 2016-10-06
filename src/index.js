@@ -97,25 +97,17 @@ class FirebaseReporting {
     }
   }
 
-  where(filterName, prop, evaluatorName) {
+  where(filterName, filterData) {
+    filterName = filterName || 'default';
     const query = new ReportQuery(this);
-    query.setFilter(filterName || 'default');
-    if (prop) {
-      query.setMetric(prop, evaluatorName);
+    if (filterData) {
+      query.setFilter(filterName, this._getFilterKey(filterName, filterData));
+    } else if (filterName === 'default') {
+      query.setFilter(filterName, 'default');
+    } else {
+      query.setFilter(filterName);
     }
     return query;
-  }
-
-  _getMetricValue(filterName, prop, data, evaluatorName) {
-    const filterRef = this.firebaseRef.child(filterName).child(this._getFilterKey(filterName, data));
-    const metricRef = filterRef.child(this._getMetricKey(prop, evaluatorName));
-    const promise = new rsvp.Promise((resolve) => {
-      metricRef.once('value', (snapshot) => {
-        const val = snapshot.val();
-        resolve(val);
-      });
-    });
-    return promise;
   }
 
   _updateMetricValue(filterName, prop, data, evaluatorName) {

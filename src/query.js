@@ -4,31 +4,28 @@ class ReportQuery {
   constructor(reporting) {
     this.reporting = reporting;
     this.filterRef = null;
+    this.filterChildRef = null;
     this.metricKey = null;
-    this.queryRef = null;
+    this.filterKey = null;
   }
 
-  setFilter(filter) {
+  setFilter(filter, value) {
+    this.filterKey = null;
     this.filterRef = this.reporting.firebaseRef.child(filter);
 
-    this.queryRef = null;
-    if (this.metricKey !== null) {
-      this.queryRef = this.filterRef.orderByChild(this.metricKey);
+    if (value) {
+      this.filterKey = value;
     }
   }
 
   setMetric(prop, evaluator) {
     this.metricKey = this.reporting._getMetricKey(prop, evaluator);
-
-    this.queryRef = null;
-    if (this.filterRef !== null) {
-      this.queryRef = this.filterRef.orderByChild(this.metricKey);
-    }
   }
 
   min(prop) {
     const query = new ReportQuery(this.reporting);
     query.filterRef = this.filterRef;
+    query.filterKey = this.filterKey;
     query.setMetric(prop, 'min');
     return query;
   }
@@ -36,6 +33,7 @@ class ReportQuery {
   max(prop) {
     const query = new ReportQuery(this.reporting);
     query.filterRef = this.filterRef;
+    query.filterKey = this.filterKey;
     query.setMetric(prop, 'max');
     return query;
   }
@@ -43,6 +41,7 @@ class ReportQuery {
   diff(prop) {
     const query = new ReportQuery(this.reporting);
     query.filterRef = this.filterRef;
+    query.filterKey = this.filterKey;
     query.setMetric(prop, 'diff');
     return query;
   }
@@ -50,6 +49,7 @@ class ReportQuery {
   sum(prop) {
     const query = new ReportQuery(this.reporting);
     query.filterRef = this.filterRef;
+    query.filterKey = this.filterKey;
     query.setMetric(prop, 'sum');
     return query;
   }
@@ -57,6 +57,7 @@ class ReportQuery {
   multi(prop) {
     const query = new ReportQuery(this.reporting);
     query.filterRef = this.filterRef;
+    query.filterKey = this.filterKey;
     query.setMetric(prop, 'multi');
     return query;
   }
@@ -64,6 +65,7 @@ class ReportQuery {
   div(prop) {
     const query = new ReportQuery(this.reporting);
     query.filterRef = this.filterRef;
+    query.filterKey = this.filterKey;
     query.setMetric(prop, 'div');
     return query;
   }
@@ -71,6 +73,7 @@ class ReportQuery {
   first(prop) {
     const query = new ReportQuery(this.reporting);
     query.filterRef = this.filterRef;
+    query.filterKey = this.filterKey;
     query.setMetric(prop, 'first');
     return query;
   }
@@ -78,15 +81,32 @@ class ReportQuery {
   last(prop) {
     const query = new ReportQuery(this.reporting);
     query.filterRef = this.filterRef;
+    query.filterKey = this.filterKey;
     query.setMetric(prop, 'last');
     return query;
+  }
+
+  value() {
+    if (!this.filterKey) {
+      throw 'Filter key not set';
+    }
+    if (!this.metricKey) {
+      throw 'Metric key not set';
+    }
+    const query = this.filterRef.child(this.filterKey).child(this.metricKey);
+    const promise = new rsvp.Promise((resolve, reject) => {
+      query.once('value').then((snapshot) => {
+        resolve(snapshot.val());
+      }).catch(reject);
+    });
+    return promise;
   }
 
   select(limit, order) {
     limit = limit || 1;
     order = order || 'desc';
 
-    let query = this.queryRef;
+    let query = this.filterRef.orderByChild(this.metricKey);
     if (order === 'desc') {
       query = query.limitToLast(limit);
     } else if (order === 'asc') {
@@ -138,8 +158,8 @@ class ReportQuery {
   }
 
   _getCount(comparision, value, otherValue) {
-    const promise = new rsvp.Promise((resolve) => {
-      let query = this.queryRef;
+    const promise = new rsvp.Promise((resolve, reject) => {
+      let query = this.filterRef.orderByChild(this.metricKey);
       switch (comparision) {
         case 'lesser':
           query = query.endAt(value);
@@ -151,9 +171,9 @@ class ReportQuery {
           query = query.startAt(value).endAt(otherValue);
           break;
       }
-      query.once('value', (snapshot) => {
+      query.once('value').then((snapshot) => {
         resolve(snapshot.numChildren());
-      });
+      }).catch(reject);
     });
     return promise;
   }

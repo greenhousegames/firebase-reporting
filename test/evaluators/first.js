@@ -52,6 +52,36 @@ describe('evaluator', () => {
   });
 });
 
+describe('value', () => {
+  it('should retrieve metric with default filter', (done) => {
+    reporting.addMetric('value', ['first']);
+    const data = {value: 50};
+
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where().first('value').value()).to.become(50)
+      ])).notify(done);
+    }).catch((err) => {
+      done(new Error(err));
+    });
+  });
+
+  it('should retrieve metric with custom filter', (done) => {
+    reporting.addFilter('custom', ['mode']);
+    reporting.addMetric('value', ['first']);
+    const data = {value: 50, mode: 1};
+
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where('custom', { mode: 1 }).first('value').value()).to.become(50),
+        expect(reporting.where('custom', { mode: 2 }).first('value').value()).to.become(null)
+      ])).notify(done);
+    }).catch((err) => {
+      done(new Error(err));
+    });
+  });
+});
+
 describe('select', () => {
   it('should retrieve metric with default filter', (done) => {
     reporting.addMetric('value', ['first']);
