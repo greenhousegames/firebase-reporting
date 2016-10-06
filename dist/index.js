@@ -17,17 +17,17 @@ var FirebaseReporting = function () {
     if (!config) {
       throw 'Must initialize with config';
     }
+    if (!config.firebase) {
+      throw 'Must initialize with firebase reference';
+    }
 
-    this.firebase = config.firebase;
-    this.paths = {
-      data: config.dataPath || 'data',
-      reporting: config.reportingPath || 'reporting'
-    };
-    this.filters = config.filters || [];
+    this.firebaseRef = config.firebase;
+    this.separator = config.separator || '~~';
     this.queryFilter = [];
     this.queryData = {};
-    this.rules = config.metrics;
+    this.metrics = {};
     this.evaluators = {};
+    this.filters = {};
 
     this.addEvaluator('max', function (newVal, oldVal) {
       return newVal > oldVal ? newVal : null;
@@ -58,110 +58,87 @@ var FirebaseReporting = function () {
   _createClass(FirebaseReporting, [{
     key: 'addEvaluator',
     value: function addEvaluator(name, method) {
+      if (!name) {
+        throw 'evaluator name is required';
+      }
+      if (typeof method !== 'function') {
+        throw 'method must be a function which takes in 2 arguments and outputs the new metric value';
+      }
+
       this.evaluators[name] = method;
     }
   }, {
-    key: 'setQueryFilter',
-    value: function setQueryFilter(filter, data) {
-      this.queryFilter = filter;
-      this.queryData = data;
+    key: 'addFilter',
+    value: function addFilter(name, props) {
+      if (!name) {
+        throw 'filter name is required';
+      }
+      if (name === 'default') {
+        throw 'cannot override default filter';
+      }
+      if (!Array.isArray(props)) {
+        throw 'props should be an array of property name which exist on the raw data being stored';
+      }
+
+      this.filters[name] = props;
+    }
+  }, {
+    key: 'addMetric',
+    value: function addMetric(prop, metrics) {
+      var _this = this;
+
+      if (!prop) {
+        throw 'property name is required';
+      }
+      if (!Array.isArray(metrics)) {
+        throw 'metrics must be an array of evaluator names';
+      }
+      metrics.forEach(function (m) {
+        if (!_this.evaluators[m]) {
+          throw 'metrics contains one or more invalid evaluators';
+        }
+      });
+
+      this.metrics[prop] = metrics;
     }
   }, {
     key: 'saveMetrics',
     value: function saveMetrics(data) {
-      var promises = [];
-      promises.push(this.saveMetricsForData(data));
-      promises.push(this.saveMetricsForUser(data));
-      return _rsvp2.default.all(promises);
-    }
-  }, {
-    key: 'saveMetricsForData',
-    value: function saveMetricsForData(data) {
-      var _this = this;
-
-      var promises = [];
-      var ref = this.refDataReporting();
-      for (var key in data) {
-        if (this.rules[key]) {
-          // need to store metrics for data
-          this.rules[key].forEach(function (metric) {
-            if (_this.evaluators[metric]) {
-              // run metric for each filter
-              _this.filters.forEach(function (filter) {
-                promises.push(_this._calculateMetricValue(ref, key, data[key], metric, _this.evaluators[metric], filter, data));
-              });
-            }
-          });
-        }
-      }
-      return _rsvp2.default.all(promises);
-    }
-  }, {
-    key: 'saveMetricsForUser',
-    value: function saveMetricsForUser(data, uid) {
       var _this2 = this;
 
-      uid = uid || this._getUserUID();
-      var ref = this.refUserReporting().child(uid);
       var promises = [];
-      for (var key in data) {
-        if (this.rules[key]) {
-          // need to store metrics for data
-          this.rules[key].forEach(function (metric) {
-            if (_this2.evaluators[metric]) {
-              // run metric for each filter
-              _this2.filters.forEach(function (filter) {
-                promises.push(_this2._calculateMetricValue(ref, key, data[key], metric, _this2.evaluators[metric], filter, data));
-              });
-            }
-          });
-        }
-      }
-      return _rsvp2.default.all(promises);
-    }
-  }, {
-    key: 'getMetricsForUser',
-    value: function getMetricsForUser(uid) {
-      var _this3 = this;
+      for (var prop in data) {
+        if (!this.metrics[prop]) continue;
 
-      uid = uid || this._getUserUID();
-      var promise = new _rsvp2.default.Promise(function (resolve, reject) {
-        var promises = [];
-        var ref = _this3.refUserReporting().child(uid);
-        var metrics = {};
-        for (var key in _this3.rules) {
-          metrics[key] = {};
-          _this3.rules[key].forEach(function (metric) {
-            if (_this3.evaluators[metric]) {
-              promises.push(_this3._captureMetricValue(ref, key, metric, metrics));
-            } else {
-              metrics[key][metric] = null;
-            }
-          });
-        }
-        return _rsvp2.default.all(promises).then(function () {
-          resolve(metrics);
-        }).catch(reject);
-      });
-      return promise;
+        // need to store metrics for data
+        this.metrics[prop].forEach(function (metric) {
+          // run for default filter
+          promises.push(_this2._updateMetricValue('default', prop, data, metric));
+
+          // run metric for each filter
+          for (var fname in _this2.filters) {
+            promises.push(_this2._updateMetricValue(fname, prop, data, metric));
+          }
+        });
+      }
+
+      if (promises.length > 0) {
+        return _rsvp2.default.all(promises);
+      } else {
+        return new _rsvp2.default.Promise(function (resolve) {
+          return resolve();
+        });
+      }
     }
   }, {
-    key: 'getDataMetricValues',
-    value: function getDataMetricValues(stat, evalName, limit, order) {
-      return this._getMetrics(this.refDataReporting(), stat, evalName, limit, order);
-    }
-  }, {
-    key: 'getUserMetricValues',
-    value: function getUserMetricValues(stat, evalName, limit, order) {
-      return this._getMetrics(this.refUserReporting(), stat, evalName, limit, order);
-    }
-  }, {
-    key: '_getMetrics',
-    value: function _getMetrics(ref, stat, evalName, limit, order) {
+    key: 'getMetricValues',
+    value: function getMetricValues(filterName, prop, evaluatorName, limit, order) {
       limit = limit || 1;
-      var key = this._getStatKey(stat, evalName);
+      order = order || 'desc';
+      var filterRef = this.firebaseRef.child(filterName);
+      var metricKey = this._getMetricKey(prop, evaluatorName);
+      var query = filterRef.orderByChild(metricKey);
       var values = [];
-      var query = ref.orderByChild(key);
       if (order === 'desc') {
         query = query.limitToLast(limit);
       } else if (order === 'asc') {
@@ -169,7 +146,7 @@ var FirebaseReporting = function () {
       }
       var promise = new _rsvp2.default.Promise(function (resolve) {
         query.on('child_added', function (snapshot) {
-          values.push(snapshot.child(key).val());
+          values.push(snapshot.child(metricKey).val());
           if (values.length === limit) {
             done();
           }
@@ -194,39 +171,25 @@ var FirebaseReporting = function () {
       return promise;
     }
   }, {
-    key: 'getDataMetricTotals',
-    value: function getDataMetricTotals(stat, evalName, comparision, value, otherValue) {
-      return this._getTotalInternal(this.refDataReporting(), stat, evalName, comparision, value, otherValue);
-    }
-  }, {
-    key: 'getUserMetricTotals',
-    value: function getUserMetricTotals(stat, evalName, comparision, value, otherValue) {
-      return this._getTotalInternal(this.refUserReporting(), stat, evalName, comparision, value, otherValue);
-    }
-  }, {
-    key: '_getTotalInternal',
-    value: function _getTotalInternal(ref, stat, evalName, comparision, value, otherValue) {
-      var _this4 = this;
-
+    key: 'getMetricTotals',
+    value: function getMetricTotals(filterName, prop, evaluatorName, comparision, value, otherValue) {
+      var filterRef = this.firebaseRef.child(filterName);
+      var metricKey = this._getMetricKey(prop, evaluatorName);
       var promise = new _rsvp2.default.Promise(function (resolve) {
-        var query = ref;
-        if (stat) {
-          var key = _this4._getStatKey(stat, evalName);
-          query = query.orderByChild(key);
-          switch (comparision) {
-            case 'lesser':
-              query = query.endAt(value);
-              break;
-            case 'greater':
-              query = query.startAt(value);
-              break;
-            case 'between':
-              query = query.startAt(value).endAt(otherValue);
-              break;
-            case 'equal':
-              query = query.startAt(value).endAt(value);
-              break;
-          }
+        var query = filterRef.orderByChild(metricKey);
+        switch (comparision) {
+          case 'lesser':
+            query = query.endAt(value);
+            break;
+          case 'greater':
+            query = query.startAt(value);
+            break;
+          case 'between':
+            query = query.startAt(value).endAt(otherValue);
+            break;
+          case 'equal':
+            query = query.startAt(value).endAt(value);
+            break;
         }
         query.once('value', function (snapshot) {
           resolve(snapshot.numChildren());
@@ -235,77 +198,64 @@ var FirebaseReporting = function () {
       return promise;
     }
   }, {
-    key: '_captureMetricValue',
-    value: function _captureMetricValue(uid, stat, evaluatorName, metrics) {
-      var key = this._getStatKey(stat, evaluatorName);
+    key: '_getMetricValue',
+    value: function _getMetricValue(filterName, prop, data, evaluatorName) {
+      var filterRef = this.firebaseRef.child(filterName).child(this._getFilterKey(filterName, data));
+      var metricRef = filterRef.child(this._getMetricKey(prop, evaluatorName));
       var promise = new _rsvp2.default.Promise(function (resolve) {
-        ref.child(key).once('value', function (snapshot) {
+        metricRef.once('value', function (snapshot) {
           var val = snapshot.val();
-          if (metrics) {
-            metrics[stat][evaluatorName] = val;
-          }
           resolve(val);
         });
       });
       return promise;
     }
   }, {
-    key: '_calculateMetricValue',
-    value: function _calculateMetricValue(ref, stat, newVal, evaluatorName, evaluator, filter, filterData) {
-      var key = this._getStatKey(stat, evaluatorName, filter, filterData);
-      return ref.child(key).transaction(function (oldVal) {
-        if (typeof oldVal === 'undefined') {
+    key: '_updateMetricValue',
+    value: function _updateMetricValue(filterName, prop, data, evaluatorName) {
+      var filterRef = this.firebaseRef.child(filterName).child(this._getFilterKey(filterName, data));
+      var metricRef = filterRef.child(this._getMetricKey(prop, evaluatorName));
+      var evaluator = this.evaluators[evaluatorName];
+      var newVal = data[prop];
+      var getUpdatedValue = function getUpdatedValue(oldVal) {
+        if (typeof oldVal === 'undefined' || oldVal === null) {
           return newVal;
         } else {
           var evalVal = evaluator(newVal, oldVal);
-          if (typeof evalVal !== 'undefined' && evalVal !== null) {
-            return evalVal;
-          } else {
+          if (typeof evalVal === 'undefined' || evalVal === null) {
             return oldVal;
+          } else {
+            return evalVal;
           }
         }
-      });
-    }
-  }, {
-    key: '_getStatKey',
-    value: function _getStatKey(stat, evalName, filter, filterData) {
-      var _this5 = this;
+      };
 
-      var prefix = '';
-      (filter || this.queryFilter).forEach(function (key) {
-        filterData += key + '~~';
-        if (filterData) {
-          prefix += filterData[key] + '~~';
-        } else {
-          prefix += _this5.queryData[key] + '~~';
-        }
-      });
-      return prefix + stat + '~~' + evalName;
+      return metricRef.transaction(getUpdatedValue);
     }
   }, {
-    key: 'refData',
-    value: function refData() {
-      return this.firebase.database().ref(this.paths.data);
+    key: '_getMetricKey',
+    value: function _getMetricKey(prop, evalName) {
+      return prop + this.separator + evalName;
     }
   }, {
-    key: 'refUserReporting',
-    value: function refUserReporting() {
-      return this.firebase.database().ref(this.paths.reporting).child('users');
-    }
-  }, {
-    key: 'refDataReporting',
-    value: function refDataReporting() {
-      return this.firebase.database().ref(this.paths.reporting).child('data');
-    }
-  }, {
-    key: '_getUserUID',
-    value: function _getUserUID() {
-      var currentUser = this.firebase.auth().currentUser;
-      if (currentUser) {
-        return currentUser.uid;
-      } else {
-        return 'unknown';
+    key: '_getFilterKey',
+    value: function _getFilterKey(filterName, data) {
+      var _this3 = this;
+
+      if (filterName === 'default') {
+        return 'default';
       }
+
+      if (!this.filters[filterName]) {
+        throw 'Filter name does not exist';
+      }
+
+      var key = '';
+      this.filters[filterName].forEach(function (prop) {
+        key += prop + _this3.separator;
+        key += data[prop] + _this3.separator;
+      });
+      return key;
     }
   }]);
 
