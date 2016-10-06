@@ -1,5 +1,5 @@
 import rsvp from 'rsvp';
-import ReportQuery from './query';
+import ReportQuery from './reportquery';
 
 class FirebaseReporting {
   constructor(config) {
@@ -12,11 +12,10 @@ class FirebaseReporting {
 
     this.firebaseRef = config.firebase;
     this.separator = config.separator || '~~';
-    this.queryFilter = [];
-    this.queryData = {};
-    this.metrics = {};
+    this.properties = {};
     this.evaluators = {};
     this.filters = {};
+    this.retainers = {};
 
     this.addEvaluator('max', (newVal, oldVal) => newVal > oldVal ? newVal : null);
     this.addEvaluator('min', (newVal, oldVal) => newVal < oldVal ? newVal : null);
@@ -26,6 +25,18 @@ class FirebaseReporting {
     this.addEvaluator('diff', (newVal, oldVal) => oldVal - newVal);
     this.addEvaluator('multi', (newVal, oldVal) => oldVal * newVal);
     this.addEvaluator('div', (newVal, oldVal) => oldVal / newVal);
+
+    this.addRetainer('second', 1000);
+    this.addRetainer('half-minute', 30000);
+    this.addRetainer('minute', 60000);
+    this.addRetainer('half-hour', 1800000);
+    this.addRetainer('hour', 3600000);
+    this.addRetainer('half-day', 43200000);
+    this.addRetainer('day', 86400000);
+    this.addRetainer('week', 604800000);
+    this.addRetainer('2weeks', 1209600000);
+    this.addRetainer('3weeks', 1814400000);
+    this.addRetainer('4weeks', 2419200000);
   }
 
   addEvaluator(name, method) {
@@ -66,7 +77,34 @@ class FirebaseReporting {
       }
     });
 
-    this.metrics[prop] = metrics;
+    this.properties[prop] = this.properties[prop] || {
+      metrics: [],
+      retainers: {}
+    };
+    this.properties[prop].metrics = metrics;
+  }
+
+  addRetainer(name, duration) {
+    if (!name) {
+      throw 'retainer name is required';
+    }
+    if (isNaN(duration)) {
+      throw 'duration is invalid';
+    }
+
+    this.retainers[name] = {
+      duration: duration
+    };
+  }
+
+  enableRetainer(retainer, prop, metrics) {
+    metrics.forEach((m) => {
+      if (!this.evaluators[m]) {
+        throw 'metrics contains one or more invalid evaluators';
+      }
+    });
+
+    this.properties[prop].retainers[retainer] = metrics;
   }
 
   saveMetrics(values) {
@@ -75,18 +113,31 @@ class FirebaseReporting {
 
     vals.forEach((data) => {
       for (var prop in data) {
-        if (!this.metrics[prop]) continue;
+        if (!this.properties[prop]) continue;
 
-        // need to store metrics for data
-        this.metrics[prop].forEach((metric) => {
+        // store metrics for data
+        this.properties[prop].metrics.forEach((metric) => {
           // run for default filter
-          promises.push(this._updateMetricValue('default', prop, data, metric));
+          promises.push(this.updateMetricValue('default', prop, data, metric));
 
-          // run metric for each filter
+          // run for other filter
           for (var fname in this.filters) {
-            promises.push(this._updateMetricValue(fname, prop, data, metric));
+            promises.push(this.updateMetricValue(fname, prop, data, metric));
           }
         });
+
+        // store retained metrics for data
+        for (var retainer in this.properties[prop].retainers) {
+          this.properties[prop].retainers[retainer].forEach((metric) => {
+            // run for default filter
+            promises.push(this.retainMetricValue('default', retainer, prop, data, metric));
+
+            // run for other filter
+            for (var fname in this.filters) {
+              promises.push(this.retainMetricValue(fname, retainer, prop, data, metric));
+            }
+          });
+        }
       }
     });
 
@@ -101,7 +152,7 @@ class FirebaseReporting {
     filterName = filterName || 'default';
     const query = new ReportQuery(this);
     if (filterData) {
-      query.setFilter(filterName, this._getFilterKey(filterName, filterData));
+      query.setFilter(filterName, this.getFilterKey(filterName, filterData));
     } else if (filterName === 'default') {
       query.setFilter(filterName, 'default');
     } else {
@@ -110,12 +161,11 @@ class FirebaseReporting {
     return query;
   }
 
-  _updateMetricValue(filterName, prop, data, evaluatorName) {
-    const filterRef = this.firebaseRef.child(filterName).child(this._getFilterKey(filterName, data));
-    const metricRef = filterRef.child(this._getMetricKey(prop, evaluatorName));
+  updateMetricValue(filterName, prop, data, evaluatorName) {
+    const metricRef = this.getFilterMetricRef(filterName, data).child(this.getMetricKey(prop, evaluatorName));
     const evaluator = this.evaluators[evaluatorName];
     const newVal = data[prop];
-    const getUpdatedValue = (oldVal) => {
+    return metricRef.transaction((oldVal) => {
       if (typeof oldVal === 'undefined' || oldVal === null) {
         return newVal;
       } else {
@@ -126,17 +176,33 @@ class FirebaseReporting {
           return evalVal;
         }
       }
-    };
-
-    return metricRef.transaction(getUpdatedValue);
+    });
   }
 
-  _getMetricKey(prop, evalName) {
-    return prop + this.separator + evalName;
+  retainMetricValue(filterName, retainerName, prop, data, evaluatorName) {
+    const metricRef = this.getRetainerBucketRef(filterName, data, retainerName).child(this.getMetricKey(prop, evaluatorName));
+    const evaluator = this.evaluators[evaluatorName];
+    const newVal = data[prop];
+    return metricRef.transaction((oldVal) => {
+      if (typeof oldVal === 'undefined' || oldVal === null) {
+        return newVal;
+      } else {
+        const evalVal = evaluator(newVal, oldVal);
+        if (typeof evalVal === 'undefined' || evalVal === null) {
+          return oldVal;
+        } else {
+          return evalVal;
+        }
+      }
+    });
   }
 
-  _getFilterKey(filterName, data) {
-    if (filterName === 'default') {
+  getMetricKey(prop, evaluatorName) {
+    return prop + this.separator + evaluatorName;
+  }
+
+  getFilterKey(filterName, data) {
+    if (!filterName || filterName === 'default') {
       return 'default';
     }
 
@@ -150,6 +216,28 @@ class FirebaseReporting {
       key += data[prop] + this.separator;
     });
     return key;
+  }
+
+  getRetainerBucketKey(retainerName, time) {
+    const retainer = this.retainers[retainerName];
+    time = time || new Date().getTime();
+    return Math.floor(time / retainer.duration).toString();
+  }
+
+  getFilterRef(filterName) {
+    return this.firebaseRef.child(filterName);
+  }
+
+  getFilterMetricRef(filterName, data) {
+    return this.getFilterRef(filterName).child('metrics').child(this.getFilterKey(filterName, data));
+  }
+
+  getFilterRetainerRef(filterName, data) {
+    return this.getFilterRef(filterName).child('retainers').child(this.getFilterKey(filterName, data));
+  }
+
+  getRetainerBucketRef(filterName, data, retainerName) {
+    return this.getFilterRetainerRef(filterName, data).child(retainerName).child(this.getRetainerBucketKey(retainerName));
   }
 }
 

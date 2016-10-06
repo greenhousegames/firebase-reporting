@@ -88,11 +88,29 @@ describe('Firebase Reporting', () => {
       expect(Object.keys(reporting.filters).length).to.equal(0);
   	});
 
-    it('should initialize with no metrics', () => {
+    it('should initialize with no properties', () => {
       const reporting = new helpers.FirebaseReporting({
         firebase: helpers.newFirebaseClient()
       });
-      expect(Object.keys(reporting.metrics).length).to.equal(0);
+      expect(Object.keys(reporting.properties).length).to.equal(0);
+  	});
+
+    it('should initialize with default retainers', () => {
+      const reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
+      });
+      expect(Object.keys(reporting.retainers).length).to.equal(11);
+      expect(reporting.retainers['second'].duration).to.be.equal(1000);
+      expect(reporting.retainers['half-minute'].duration).to.be.equal(1000 * 60 / 2);
+      expect(reporting.retainers['minute'].duration).to.be.equal(1000 * 60);
+      expect(reporting.retainers['half-hour'].duration).to.be.equal(1000 * 60 * 60 / 2);
+      expect(reporting.retainers['hour'].duration).to.be.equal(1000 * 60 * 60);
+      expect(reporting.retainers['half-day'].duration).to.be.equal(1000 * 60 * 60 * 24 / 2);
+      expect(reporting.retainers['day'].duration).to.be.equal(1000 * 60 * 60 * 24);
+      expect(reporting.retainers['week'].duration).to.be.equal(1000 * 60 * 60 * 24 * 7);
+      expect(reporting.retainers['2weeks'].duration).to.be.equal(1000 * 60 * 60 * 24 * 7 * 2);
+      expect(reporting.retainers['3weeks'].duration).to.be.equal(1000 * 60 * 60 * 24 * 7 * 3);
+      expect(reporting.retainers['4weeks'].duration).to.be.equal(1000 * 60 * 60 * 24 * 7 * 4);
   	});
 
     it('should initialize with default evaluators', () => {
@@ -201,8 +219,133 @@ describe('Firebase Reporting', () => {
       const metrics = ['sum'];
       expect(() => reporting.addMetric('name', metrics)).to.not.throw();
 
-      expect(Object.keys(reporting.metrics).length).to.equal(1);
-      expect(reporting.metrics['name']).to.be.equal(metrics);
+      expect(Object.keys(reporting.properties).length).to.equal(1);
+      expect(reporting.properties['name'].metrics).to.deep.equal(['sum']);
+  	});
+  });
+
+  describe('addRetainer', () => {
+    let reporting;
+
+    beforeEach(() => {
+      reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
+      });
+    });
+
+    it('should throw when name not provided', () => {
+      expect(() => reporting.addRetainer(''))
+        .to.throw('retainer name is required');
+  	});
+
+    it('should throw when invalid duration', () => {
+      expect(() => reporting.addRetainer('name', 'name'))
+        .to.throw('duration is invalid');
+  	});
+
+    it('should add to retainer list', () => {
+      const duration = 1000;
+      expect(() => reporting.addRetainer('name', duration)).to.not.throw();
+
+      expect(Object.keys(reporting.retainers).length).to.equal(12);
+      expect(reporting.retainers['name'].duration).to.be.equal(duration);
+  	});
+  });
+
+  describe('enableRetainer', () => {
+    let reporting;
+
+    beforeEach(() => {
+      reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
+      });
+    });
+
+    it('should throw when no retainer', () => {
+      expect(() => reporting.enableRetainer()).to.throw;
+  	});
+
+    it('should throw when invalid retainer', () => {
+      expect(() => reporting.enableRetainer('retainer')).to.throw;
+  	});
+
+    it('should throw when no property', () => {
+      expect(() => reporting.enableRetainer('hour')).to.throw;
+  	});
+
+    it('should throw when invalid metrics', () => {
+      expect(() => reporting.enableRetainer('hour', 'name', ['a'])).to.throw('metrics contains one or more invalid evaluators');
+  	});
+
+    it('should work with valid arguments', () => {
+      expect(() => reporting.enableRetainer('hour', 'name', ['sum'])).to.not.throw;
+  	});
+  });
+
+  describe('getMetricKey', () => {
+    it('should work with default separator', () => {
+      const reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
+      });
+      expect(reporting.getMetricKey('name1', 'name2')).to.equal('name1~~name2');
+  	});
+
+    it('should work with custom separator', () => {
+      const reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient(),
+        separator: '``'
+      });
+      expect(reporting.getMetricKey('name2', 'name1')).to.equal('name2``name1');
+  	});
+  });
+
+  describe('getFilterKey', () => {
+    it('should work with no arguments', () => {
+      const reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
+      });
+      expect(reporting.getFilterKey()).to.equal('default');
+  	});
+
+    it('should work with default argument', () => {
+      const reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
+      });
+      expect(reporting.getFilterKey('default')).to.equal('default');
+  	});
+
+    it('should throw if invalid filter', () => {
+      const reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
+      });
+      expect(() => reporting.getFilterKey('default2')).to.throw('Filter name does not exist');
+  	});
+
+    it('should work with valid filter', () => {
+      const reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
+      });
+      reporting.addFilter('name', ['value']);
+
+      expect(reporting.getFilterKey('name', { value: 1 })).to.equal('value~~1~~');
+      expect(reporting.getFilterKey('name', { value: '12345' })).to.equal('value~~12345~~');
+  	});
+  });
+
+  describe('getRetainerBucketKey', () => {
+    it('should throw if invalid retainer', () => {
+      const reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
+      });
+      expect(() => reporting.getRetainerBucketKey()).to.throw;
+  	});
+
+    it('should work if valid retainer', () => {
+      const reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
+      });
+      expect(reporting.getRetainerBucketKey('second')).to.be.equal(Math.floor(new Date().getTime() / 1000).toString());
+      expect(reporting.getRetainerBucketKey('hour')).to.be.equal(Math.floor(new Date().getTime() / (1000 * 60 * 60)).toString());
   	});
   });
 
@@ -217,51 +360,114 @@ describe('Firebase Reporting', () => {
       });
     });
 
-    describe('no metrics configured', () => {
-      it('should store no metrics ', (done) => {
-        const data = {value: 1};
+    it('should store no metrics if no filters configured', (done) => {
+      const data = {value: 1};
 
-        reporting.saveMetrics(data).then(() => {
-          client.once('value').then((snap) => {
-            expect(snap.val()).to.be.null;
-            done();
-          });
+      reporting.saveMetrics(data).then(() => {
+        client.once('value').then((snap) => {
+          expect(snap.val()).to.be.null;
+          done();
         });
-    	});
-    });
+      });
+  	});
 
-    describe('default filter', () => {
-      it('should store metrics', (done) => {
-        reporting.addMetric('value', ['min']);
-        const data = {value: 1};
+    it('should store no retained metrics if no retainers configured', (done) => {
+      reporting.addMetric('value', ['min']);
+      const data = {value: 1};
 
-        reporting.saveMetrics(data).then(() => {
-          client.child('default').child('default').child('value~~min').once('value').then((snap) => {
-            expect(snap.val()).to.be.equal(1);
-            done();
-          }).catch((err) => {
-            done(new Error(err));
-          });
+      reporting.saveMetrics(data).then(() => {
+        client.once('value').then((snap) => {
+          expect(snap.val()).to.not.be.null;
+          done();
         });
-    	});
-    });
+      });
+  	});
 
-    describe('custom filter', () => {
-      it('should store metrics', (done) => {
-        reporting.addFilter('custom', ['mode']);
-        reporting.addMetric('value', ['min']);
-        const data = [{value: 1, mode: 1}, {value: 2, mode: 2}];
+    it('should store metrics at correct path using default filter', (done) => {
+      reporting.addMetric('value', ['min']);
+      const data = {value: 1};
 
-        reporting.saveMetrics(data).then(() => {
-          client.child('custom').child('mode~~1~~').child('value~~min').once('value').then((snap) => {
-            expect(snap.val()).to.be.equal(1);
-            done();
-          }).catch((err) => {
-            done(new Error(err));
-          });
+      reporting.saveMetrics(data).then(() => {
+        client.child('default')
+          .child('metrics')
+          .child(reporting.getFilterKey())
+          .child(reporting.getMetricKey('value', 'min'))
+          .once('value')
+          .then((snap) => {
+          expect(snap.val()).to.be.equal(1);
+          done();
+        }).catch((err) => {
+          done(new Error(err));
         });
-    	});
-    });
+      });
+  	});
+
+    it('should store retained metrics at correct path using default filter', (done) => {
+      reporting.addMetric('value', ['min']);
+      reporting.enableRetainer('hour', 'value', ['min'])
+      const data = {value: 1};
+      const bucket = reporting.getRetainerBucketKey('hour');
+
+      reporting.saveMetrics(data).then(() => {
+        client.child('default')
+          .child('retainers')
+          .child(reporting.getFilterKey())
+          .child('hour')
+          .child(bucket)
+          .child(reporting.getMetricKey('value', 'min'))
+          .once('value')
+          .then((snap) => {
+          expect(snap.val()).to.be.equal(1);
+          done();
+        }).catch((err) => {
+          done(new Error(err));
+        });
+      });
+  	});
+
+    it('should store metrics at correct path using custom filter', (done) => {
+      reporting.addFilter('custom', ['mode']);
+      reporting.addMetric('value', ['min']);
+      const data = [{value: 1, mode: 1}, {value: 2, mode: 2}];
+
+      reporting.saveMetrics(data).then(() => {
+        client.child('custom')
+          .child('metrics')
+          .child(reporting.getFilterKey('custom', { mode: 1 }))
+          .child(reporting.getMetricKey('value', 'min'))
+          .once('value')
+          .then((snap) => {
+          expect(snap.val()).to.be.equal(1);
+          done();
+        }).catch((err) => {
+          done(new Error(err));
+        });
+      });
+  	});
+
+    it('should store retained metrics at correct path using custom filter', (done) => {
+      reporting.addFilter('custom', ['mode']);
+      reporting.addMetric('value', ['min']);
+      reporting.enableRetainer('minute', 'value', ['min'])
+      const data = [{value: 1, mode: 1}, {value: 2, mode: 2}];
+      const bucket = reporting.getRetainerBucketKey('minute');
+
+      reporting.saveMetrics(data).then(() => {
+        client.child('custom')
+          .child('retainers')
+          .child(reporting.getFilterKey('custom', { mode: 1 }))
+          .child('minute')
+          .child(bucket)
+          .child(reporting.getMetricKey('value', 'min'))
+          .once('value')
+          .then((snap) => {
+          expect(snap.val()).to.be.equal(1);
+          done();
+        }).catch((err) => {
+          done(new Error(err));
+        });
+      });
+  	});
   });
 
   ['min', 'max', 'first', 'last', 'sum', 'diff', 'multi', 'div'].forEach((x) => {
