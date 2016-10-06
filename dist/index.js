@@ -6,6 +6,10 @@ var _rsvp = require('rsvp');
 
 var _rsvp2 = _interopRequireDefault(_rsvp);
 
+var _query = require('./query');
+
+var _query2 = _interopRequireDefault(_query);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -103,24 +107,28 @@ var FirebaseReporting = function () {
     }
   }, {
     key: 'saveMetrics',
-    value: function saveMetrics(data) {
+    value: function saveMetrics(values) {
       var _this2 = this;
 
       var promises = [];
-      for (var prop in data) {
-        if (!this.metrics[prop]) continue;
+      var vals = Array.isArray(values) ? values : [values];
 
-        // need to store metrics for data
-        this.metrics[prop].forEach(function (metric) {
-          // run for default filter
-          promises.push(_this2._updateMetricValue('default', prop, data, metric));
+      vals.forEach(function (data) {
+        for (var prop in data) {
+          if (!_this2.metrics[prop]) continue;
 
-          // run metric for each filter
-          for (var fname in _this2.filters) {
-            promises.push(_this2._updateMetricValue(fname, prop, data, metric));
-          }
-        });
-      }
+          // need to store metrics for data
+          _this2.metrics[prop].forEach(function (metric) {
+            // run for default filter
+            promises.push(_this2._updateMetricValue('default', prop, data, metric));
+
+            // run metric for each filter
+            for (var fname in _this2.filters) {
+              promises.push(_this2._updateMetricValue(fname, prop, data, metric));
+            }
+          });
+        }
+      });
 
       if (promises.length > 0) {
         return _rsvp2.default.all(promises);
@@ -131,71 +139,14 @@ var FirebaseReporting = function () {
       }
     }
   }, {
-    key: 'getMetricValues',
-    value: function getMetricValues(filterName, prop, evaluatorName, limit, order) {
-      limit = limit || 1;
-      order = order || 'desc';
-      var filterRef = this.firebaseRef.child(filterName);
-      var metricKey = this._getMetricKey(prop, evaluatorName);
-      var query = filterRef.orderByChild(metricKey);
-      var values = [];
-      if (order === 'desc') {
-        query = query.limitToLast(limit);
-      } else if (order === 'asc') {
-        query = query.limitToFirst(limit);
+    key: 'where',
+    value: function where(filterName, prop, evaluatorName) {
+      var query = new _query2.default(this);
+      query.setFilter(filterName || 'default');
+      if (prop) {
+        query.setMetric(prop, evaluatorName);
       }
-      var promise = new _rsvp2.default.Promise(function (resolve) {
-        query.on('child_added', function (snapshot) {
-          values.push(snapshot.child(metricKey).val());
-          if (values.length === limit) {
-            done();
-          }
-        });
-
-        var done = function done() {
-          clearTimeout(timeout);
-          query.off('child_added');
-          if (order === 'desc') {
-            values.sort(function (a, b) {
-              return b - a;
-            });
-          } else if (order === 'asc') {
-            values.sort(function (a, b) {
-              return a - b;
-            });
-          }
-          resolve(values);
-        };
-        var timeout = setTimeout(done, 5000);
-      });
-      return promise;
-    }
-  }, {
-    key: 'getMetricTotals',
-    value: function getMetricTotals(filterName, prop, evaluatorName, comparision, value, otherValue) {
-      var filterRef = this.firebaseRef.child(filterName);
-      var metricKey = this._getMetricKey(prop, evaluatorName);
-      var promise = new _rsvp2.default.Promise(function (resolve) {
-        var query = filterRef.orderByChild(metricKey);
-        switch (comparision) {
-          case 'lesser':
-            query = query.endAt(value);
-            break;
-          case 'greater':
-            query = query.startAt(value);
-            break;
-          case 'between':
-            query = query.startAt(value).endAt(otherValue);
-            break;
-          case 'equal':
-            query = query.startAt(value).endAt(value);
-            break;
-        }
-        query.once('value', function (snapshot) {
-          resolve(snapshot.numChildren());
-        });
-      });
-      return promise;
+      return query;
     }
   }, {
     key: '_getMetricValue',
