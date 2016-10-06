@@ -16,35 +16,32 @@ var ReportQuery = function () {
 
     this.reporting = reporting;
     this.filterRef = null;
+    this.filterChildRef = null;
     this.metricKey = null;
-    this.queryRef = null;
+    this.filterKey = null;
   }
 
   _createClass(ReportQuery, [{
     key: 'setFilter',
-    value: function setFilter(filter) {
+    value: function setFilter(filter, value) {
+      this.filterKey = null;
       this.filterRef = this.reporting.firebaseRef.child(filter);
 
-      this.queryRef = null;
-      if (this.metricKey !== null) {
-        this.queryRef = this.filterRef.orderByChild(this.metricKey);
+      if (value) {
+        this.filterKey = value;
       }
     }
   }, {
     key: 'setMetric',
     value: function setMetric(prop, evaluator) {
       this.metricKey = this.reporting._getMetricKey(prop, evaluator);
-
-      this.queryRef = null;
-      if (this.filterRef !== null) {
-        this.queryRef = this.filterRef.orderByChild(this.metricKey);
-      }
     }
   }, {
     key: 'min',
     value: function min(prop) {
       var query = new ReportQuery(this.reporting);
       query.filterRef = this.filterRef;
+      query.filterKey = this.filterKey;
       query.setMetric(prop, 'min');
       return query;
     }
@@ -53,6 +50,7 @@ var ReportQuery = function () {
     value: function max(prop) {
       var query = new ReportQuery(this.reporting);
       query.filterRef = this.filterRef;
+      query.filterKey = this.filterKey;
       query.setMetric(prop, 'max');
       return query;
     }
@@ -61,6 +59,7 @@ var ReportQuery = function () {
     value: function diff(prop) {
       var query = new ReportQuery(this.reporting);
       query.filterRef = this.filterRef;
+      query.filterKey = this.filterKey;
       query.setMetric(prop, 'diff');
       return query;
     }
@@ -69,6 +68,7 @@ var ReportQuery = function () {
     value: function sum(prop) {
       var query = new ReportQuery(this.reporting);
       query.filterRef = this.filterRef;
+      query.filterKey = this.filterKey;
       query.setMetric(prop, 'sum');
       return query;
     }
@@ -77,6 +77,7 @@ var ReportQuery = function () {
     value: function multi(prop) {
       var query = new ReportQuery(this.reporting);
       query.filterRef = this.filterRef;
+      query.filterKey = this.filterKey;
       query.setMetric(prop, 'multi');
       return query;
     }
@@ -85,6 +86,7 @@ var ReportQuery = function () {
     value: function div(prop) {
       var query = new ReportQuery(this.reporting);
       query.filterRef = this.filterRef;
+      query.filterKey = this.filterKey;
       query.setMetric(prop, 'div');
       return query;
     }
@@ -93,6 +95,7 @@ var ReportQuery = function () {
     value: function first(prop) {
       var query = new ReportQuery(this.reporting);
       query.filterRef = this.filterRef;
+      query.filterKey = this.filterKey;
       query.setMetric(prop, 'first');
       return query;
     }
@@ -101,8 +104,26 @@ var ReportQuery = function () {
     value: function last(prop) {
       var query = new ReportQuery(this.reporting);
       query.filterRef = this.filterRef;
+      query.filterKey = this.filterKey;
       query.setMetric(prop, 'last');
       return query;
+    }
+  }, {
+    key: 'value',
+    value: function value() {
+      if (!this.filterKey) {
+        throw 'Filter key not set';
+      }
+      if (!this.metricKey) {
+        throw 'Metric key not set';
+      }
+      var query = this.filterRef.child(this.filterKey).child(this.metricKey);
+      var promise = new _rsvp2.default.Promise(function (resolve, reject) {
+        query.once('value').then(function (snapshot) {
+          resolve(snapshot.val());
+        }).catch(reject);
+      });
+      return promise;
     }
   }, {
     key: 'select',
@@ -112,7 +133,7 @@ var ReportQuery = function () {
       limit = limit || 1;
       order = order || 'desc';
 
-      var query = this.queryRef;
+      var query = this.filterRef.orderByChild(this.metricKey);
       if (order === 'desc') {
         query = query.limitToLast(limit);
       } else if (order === 'asc') {
@@ -176,8 +197,8 @@ var ReportQuery = function () {
     value: function _getCount(comparision, value, otherValue) {
       var _this2 = this;
 
-      var promise = new _rsvp2.default.Promise(function (resolve) {
-        var query = _this2.queryRef;
+      var promise = new _rsvp2.default.Promise(function (resolve, reject) {
+        var query = _this2.filterRef.orderByChild(_this2.metricKey);
         switch (comparision) {
           case 'lesser':
             query = query.endAt(value);
@@ -189,9 +210,9 @@ var ReportQuery = function () {
             query = query.startAt(value).endAt(otherValue);
             break;
         }
-        query.once('value', function (snapshot) {
+        query.once('value').then(function (snapshot) {
           resolve(snapshot.numChildren());
-        });
+        }).catch(reject);
       });
       return promise;
     }

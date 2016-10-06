@@ -140,26 +140,17 @@ var FirebaseReporting = function () {
     }
   }, {
     key: 'where',
-    value: function where(filterName, prop, evaluatorName) {
+    value: function where(filterName, filterData) {
+      filterName = filterName || 'default';
       var query = new _query2.default(this);
-      query.setFilter(filterName || 'default');
-      if (prop) {
-        query.setMetric(prop, evaluatorName);
+      if (filterData) {
+        query.setFilter(filterName, this._getFilterKey(filterName, filterData));
+      } else if (filterName === 'default') {
+        query.setFilter(filterName, 'default');
+      } else {
+        query.setFilter(filterName);
       }
       return query;
-    }
-  }, {
-    key: '_getMetricValue',
-    value: function _getMetricValue(filterName, prop, data, evaluatorName) {
-      var filterRef = this.firebaseRef.child(filterName).child(this._getFilterKey(filterName, data));
-      var metricRef = filterRef.child(this._getMetricKey(prop, evaluatorName));
-      var promise = new _rsvp2.default.Promise(function (resolve) {
-        metricRef.once('value', function (snapshot) {
-          var val = snapshot.val();
-          resolve(val);
-        });
-      });
-      return promise;
     }
   }, {
     key: '_updateMetricValue',
