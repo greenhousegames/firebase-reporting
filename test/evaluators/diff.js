@@ -1,3 +1,4 @@
+var rsvp = require('rsvp');
 var chai = require('chai');
 var chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
@@ -23,34 +24,222 @@ afterEach(() => {
   }
 });
 
-it('should store correct metric for single data point', (done) => {
-  reporting.addMetric('value', ['diff']);
+describe('evaluator', () => {
+  it('should store correct metric for single data point', (done) => {
+    reporting.addMetric('value', ['diff']);
+    const data = {value: 50};
 
-  reporting.saveMetrics({value: 50}).then(() => {
-    client.child('default').child('default').child('value~~diff').once('value').then((snap) => {
-      expect(snap.val()).to.be.equal(50);
-      done();
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where().diff('value').select(1)).to.become([50])
+      ])).notify(done);
+    }).catch((err) => {
+      done(new Error(err));
+    });
+  });
+
+  it('should store correct metric for multiple data points', (done) => {
+    reporting.addMetric('value', ['diff']);
+    const data = [{value: 50}, {value: 2}, {value: 5}];
+
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where().diff('value').select(1)).to.become([43])
+      ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
     });
   });
 });
 
-it('should store correct metric for multiple data points', (done) => {
-  reporting.addMetric('value', ['diff']);
-  const data = [{value: 50}, {value: 1}, {value: 23}];
-  let total = 0;
-  const innerDone = () => {
-    total++;
-    if (total >= data.length) {
-      client.child('default').child('default').child('value~~diff').once('value').then((snap) => {
-        expect(snap.val()).to.be.equal(26);
-        done();
-      }).catch((err) => {
-        done(new Error(err));
-      });
-    }
-  };
+describe('select', () => {
+  it('should retrieve metric with default filter', (done) => {
+    reporting.addMetric('value', ['diff']);
+    const data = {value: 50};
 
-  data.forEach((d) => reporting.saveMetrics(d).finally(innerDone));
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where().diff('value').select(1)).to.become([50])
+      ])).notify(done);
+    }).catch((err) => {
+      done(new Error(err));
+    });
+  });
+
+  it('should retrieve metric with custom filter', (done) => {
+    reporting.addFilter('custom', ['mode']);
+    reporting.addMetric('value', ['diff']);
+    const data = {value: 50, mode: 1};
+
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where('custom').diff('value').select(1)).to.become([50])
+      ])).notify(done);
+    }).catch((err) => {
+      done(new Error(err));
+    });
+  });
+});
+
+describe('count', () => {
+  it('should retrieve metric with default filter', (done) => {
+    reporting.addMetric('value', ['diff']);
+    const data = [{value: 50},{value: 2},{value: 5}];
+
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where().diff('value').count()).to.become(1)
+      ])).notify(done);
+    }).catch((err) => {
+      done(new Error(err));
+    });
+  });
+
+  it('should retrieve metric with custom filter', (done) => {
+    reporting.addFilter('custom', ['mode']);
+    reporting.addMetric('value', ['diff']);
+    const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 3}];
+
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where('custom').diff('value').count()).to.become(3)
+      ])).notify(done);
+    }).catch((err) => {
+      done(new Error(err));
+    });
+  });
+});
+
+describe('lesser', () => {
+  it('should retrieve metric with default filter', (done) => {
+    reporting.addMetric('value', ['diff']);
+    const data = [{value: 50},{value: 2},{value: 5}];
+
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where().diff('value').lesser(50)).to.become(1),
+        expect(reporting.where().diff('value').lesser(40)).to.become(0)
+      ])).notify(done);
+    }).catch((err) => {
+      done(new Error(err));
+    });
+  });
+
+  it('should retrieve metric with custom filter', (done) => {
+    reporting.addFilter('custom', ['mode']);
+    reporting.addMetric('value', ['diff']);
+    const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
+
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where('custom').diff('value').lesser(50)).to.become(2),
+        expect(reporting.where('custom').diff('value').lesser(2)).to.become(1),
+        expect(reporting.where('custom').diff('value').lesser(0)).to.become(0)
+      ])).notify(done);
+    }).catch((err) => {
+      done(new Error(err));
+    });
+  });
+});
+
+describe('greater', () => {
+  it('should retrieve metric with default filter', (done) => {
+    reporting.addMetric('value', ['diff']);
+    const data = [{value: 50},{value: 2},{value: 5}];
+
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where().diff('value').greater(2)).to.become(1),
+        expect(reporting.where().diff('value').greater(45)).to.become(0)
+      ])).notify(done);
+    }).catch((err) => {
+      done(new Error(err));
+    });
+  });
+
+  it('should retrieve metric with custom filter', (done) => {
+    reporting.addFilter('custom', ['mode']);
+    reporting.addMetric('value', ['diff']);
+    const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
+
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where('custom').diff('value').greater(40)).to.become(1),
+        expect(reporting.where('custom').diff('value').greater(0)).to.become(2),
+        expect(reporting.where('custom').diff('value').greater(3)).to.become(1),
+        expect(reporting.where('custom').diff('value').greater(50)).to.become(0)
+      ])).notify(done);
+    }).catch((err) => {
+      done(new Error(err));
+    });
+  });
+});
+
+describe('equal', () => {
+  it('should retrieve metric with default filter', (done) => {
+    reporting.addMetric('value', ['diff']);
+    const data = [{value: 50},{value: 2},{value: 5}];
+
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where().diff('value').equal(2)).to.become(0),
+        expect(reporting.where().diff('value').equal(5)).to.become(0),
+        expect(reporting.where().diff('value').equal(50)).to.become(0),
+        expect(reporting.where().diff('value').equal(43)).to.become(1)
+      ])).notify(done);
+    }).catch((err) => {
+      done(new Error(err));
+    });
+  });
+
+  it('should retrieve metric with custom filter', (done) => {
+    reporting.addFilter('custom', ['mode']);
+    reporting.addMetric('value', ['diff']);
+    const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
+
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where('custom').diff('value').equal(50)).to.become(0),
+        expect(reporting.where('custom').diff('value').equal(2)).to.become(1),
+        expect(reporting.where('custom').diff('value').equal(5)).to.become(0),
+        expect(reporting.where('custom').diff('value').equal(45)).to.become(1)
+      ])).notify(done);
+    }).catch((err) => {
+      done(new Error(err));
+    });
+  });
+});
+
+describe('between', () => {
+  it('should retrieve metric with default filter', (done) => {
+    reporting.addMetric('value', ['diff']);
+    const data = [{value: 50},{value: 2},{value: 5}];
+
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where().diff('value').between(0, 5)).to.become(0),
+        expect(reporting.where().diff('value').between(10, 50)).to.become(1)
+      ])).notify(done);
+    }).catch((err) => {
+      done(new Error(err));
+    });
+  });
+
+  it('should retrieve metric with custom filter', (done) => {
+    reporting.addFilter('custom', ['mode']);
+    reporting.addMetric('value', ['diff']);
+    const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
+
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where('custom').diff('value').between(10, 50)).to.become(1),
+        expect(reporting.where('custom').diff('value').between(0, 50)).to.become(2),
+        expect(reporting.where('custom').diff('value').between(1, 5)).to.become(1),
+        expect(reporting.where('custom').diff('value').between(1, 2)).to.become(1),
+        expect(reporting.where('custom').diff('value').between(4, 5)).to.become(0)
+      ])).notify(done);
+    }).catch((err) => {
+      done(new Error(err));
+    });
+  });
 });

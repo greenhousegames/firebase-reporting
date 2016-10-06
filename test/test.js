@@ -219,7 +219,7 @@ describe('Firebase Reporting', () => {
 
     describe('no metrics configured', () => {
       it('should store no metrics ', (done) => {
-        const data = {a: 1};
+        const data = {value: 1};
 
         reporting.saveMetrics(data).then(() => {
           client.once('value').then((snap) => {
@@ -245,13 +245,28 @@ describe('Firebase Reporting', () => {
         });
     	});
     });
+
+    describe('custom filter', () => {
+      it('should store metrics', (done) => {
+        reporting.addFilter('custom', ['mode']);
+        reporting.addMetric('value', ['min']);
+        const data = [{value: 1, mode: 1}, {value: 2, mode: 2}];
+
+        reporting.saveMetrics(data).then(() => {
+          client.child('custom').child('mode~~1~~').child('value~~min').once('value').then((snap) => {
+            expect(snap.val()).to.be.equal(1);
+            done();
+          }).catch((err) => {
+            done(new Error(err));
+          });
+        });
+    	});
+    });
   });
 
-  describe('evaluators', () => {
-    ['min', 'max', 'first', 'last', 'sum', 'diff', 'multi', 'div'].forEach((e) => {
-      describe(e, () => {
-        require('./evaluators/' + e);
-      });
+  ['min', 'max', 'first', 'last', 'sum', 'diff', 'multi', 'div'].forEach((x) => {
+    describe('where.' + x, () => {
+      require('./evaluators/' + x);
     });
   });
 });

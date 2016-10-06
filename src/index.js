@@ -1,4 +1,5 @@
 import rsvp from 'rsvp';
+import ReportQuery from './query';
 
 class FirebaseReporting {
   constructor(config) {
@@ -68,22 +69,26 @@ class FirebaseReporting {
     this.metrics[prop] = metrics;
   }
 
-  saveMetrics(data) {
+  saveMetrics(values) {
     const promises = [];
-    for (var prop in data) {
-      if (!this.metrics[prop]) continue;
+    const vals = Array.isArray(values) ? values : [values];
 
-      // need to store metrics for data
-      this.metrics[prop].forEach((metric) => {
-        // run for default filter
-        promises.push(this._updateMetricValue('default', prop, data, metric));
+    vals.forEach((data) => {
+      for (var prop in data) {
+        if (!this.metrics[prop]) continue;
 
-        // run metric for each filter
-        for (var fname in this.filters) {
-          promises.push(this._updateMetricValue(fname, prop, data, metric));
-        }
-      });
-    }
+        // need to store metrics for data
+        this.metrics[prop].forEach((metric) => {
+          // run for default filter
+          promises.push(this._updateMetricValue('default', prop, data, metric));
+
+          // run metric for each filter
+          for (var fname in this.filters) {
+            promises.push(this._updateMetricValue(fname, prop, data, metric));
+          }
+        });
+      }
+    });
 
     if (promises.length > 0) {
       return rsvp.all(promises);
@@ -92,65 +97,13 @@ class FirebaseReporting {
     }
   }
 
-  getMetricValues(filterName, prop, evaluatorName, limit, order) {
-    limit = limit || 1;
-    order = order || 'desc';
-    const filterRef = this.firebaseRef.child(filterName);
-    const metricKey = this._getMetricKey(prop, evaluatorName);
-    let query = filterRef.orderByChild(metricKey);
-    const values = [];
-    if (order === 'desc') {
-      query = query.limitToLast(limit);
-    } else if (order === 'asc') {
-      query = query.limitToFirst(limit);
+  where(filterName, prop, evaluatorName) {
+    const query = new ReportQuery(this);
+    query.setFilter(filterName || 'default');
+    if (prop) {
+      query.setMetric(prop, evaluatorName);
     }
-    const promise = new rsvp.Promise((resolve) => {
-      query.on('child_added', (snapshot) => {
-        values.push(snapshot.child(metricKey).val());
-        if (values.length === limit) {
-          done();
-        }
-      });
-
-      const done = () => {
-        clearTimeout(timeout);
-        query.off('child_added');
-        if (order === 'desc') {
-          values.sort((a, b) => b - a);
-        } else if (order === 'asc') {
-          values.sort((a, b) => a - b);
-        }
-        resolve(values);
-      };
-      const timeout = setTimeout(done, 5000);
-    });
-    return promise;
-  }
-
-  getMetricTotals(filterName, prop, evaluatorName, comparision, value, otherValue) {
-    const filterRef = this.firebaseRef.child(filterName);
-    const metricKey = this._getMetricKey(prop, evaluatorName);
-    const promise = new rsvp.Promise((resolve) => {
-      let query = filterRef.orderByChild(metricKey);
-      switch (comparision) {
-        case 'lesser':
-          query = query.endAt(value);
-          break;
-        case 'greater':
-          query = query.startAt(value);
-          break;
-        case 'between':
-          query = query.startAt(value).endAt(otherValue);
-          break;
-        case 'equal':
-          query = query.startAt(value).endAt(value);
-          break;
-      }
-      query.once('value', (snapshot) => {
-        resolve(snapshot.numChildren());
-      });
-    });
-    return promise;
+    return query;
   }
 
   _getMetricValue(filterName, prop, data, evaluatorName) {
