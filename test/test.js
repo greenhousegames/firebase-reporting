@@ -1,37 +1,11 @@
-var PORT = 45000;
-var originalWebsocket = require('faye-websocket');
-var expect = require('chai').expect;
-var proxyquire = require('proxyquire');
-
-// Firebase has strict requirements about the hostname format. So we provide a dummy
-// hostname and then change the URL to localhost inside the faye-websocket's Client
-// constructor.
-var firebase = proxyquire('firebase', {
-  'faye-websocket': {
-    Client: (url) => {
-      url = url.replace(/dummy\d+\.firebaseio\.test/i, 'localhost');
-      return new originalWebsocket.Client(url);
-    },
-    '@global': true
-  }
-});
-var FirebaseServer = require('firebase-server');
-var FirebaseReporting = require('../dist');
+var chai = require('chai');
+var chaiAsPromised = require('chai-as-promised');
+chai.use(chaiAsPromised);
+var expect = chai.expect;
+var helpers = require('./helpers');
 
 describe('Firebase Reporting', () => {
   var firebaseServer;
-	var sequentialConnectionId = 0;
-  var helpers = {
-    newServerUrl: () => {
-  		return 'ws://dummy' + (sequentialConnectionId++) + '.firebaseio.test:' + PORT;
-  	},
-    createServer: () => {
-      return new FirebaseServer(PORT, 'localhost:' + PORT);
-    }
-  };
-
-  beforeEach(() => {
-  });
 
   afterEach(() => {
     if (firebaseServer) {
@@ -40,27 +14,10 @@ describe('Firebase Reporting', () => {
     }
   });
 
-  function newFirebaseApp() {
-		var name = 'test-firebase-client-' + sequentialConnectionId;
-		var url = 'ws://dummy' + (sequentialConnectionId++) + '.firebaseio.test:' + PORT;
-		var config = {
-			databaseURL: url
-		};
-		return firebase.initializeApp(config, name);
-	}
-
-  function newFirebaseClient() {
-		return newFirebaseApp().database().ref();
-	}
-
-  function newFirebaseServer(data) {
-    return new FirebaseServer(PORT, 'localhost:' + PORT, data);
-  }
-
   describe('Testing Setup', () => {
     it('client should connect to server', (done) => {
-      firebaseServer = newFirebaseServer();
-      const client = newFirebaseClient();
+      firebaseServer = helpers.newFirebaseServer();
+      const client = helpers.newFirebaseClient();
   		client.once('value').then((snap) => {
         expect(snap.val()).to.be.null;
   			done();
@@ -68,8 +25,8 @@ describe('Firebase Reporting', () => {
   	});
 
     it('client should read data from server', (done) => {
-      firebaseServer = newFirebaseServer();
-      const client = newFirebaseClient();
+      firebaseServer = helpers.newFirebaseServer();
+      const client = helpers.newFirebaseClient();
       client.set('hello').then(() => {
         client.once('value').then((snap) => {
           expect(snap.val()).to.equal('hello');
@@ -79,9 +36,9 @@ describe('Firebase Reporting', () => {
   	});
 
     it('client should read data from server written by other client', (done) => {
-      firebaseServer = newFirebaseServer();
-      const client1 = newFirebaseClient();
-      const client2 = newFirebaseClient();
+      firebaseServer = helpers.newFirebaseServer();
+      const client1 = helpers.newFirebaseClient();
+      const client2 = helpers.newFirebaseClient();
       client1.set('hello').then(() => {
         client2.once('value').then((snap) => {
           expect(snap.val()).to.equal('hello');
@@ -93,59 +50,54 @@ describe('Firebase Reporting', () => {
 
   describe('Constructor', () => {
     it('should throw with no config', () => {
-      const create = () => new FirebaseReporting();
+      const create = () => new helpers.FirebaseReporting();
       expect(create).to.throw('Must initialize with config');
   	});
 
     it('should throw with no config.firebase', () => {
-      const create = () => new FirebaseReporting({});
-      expect(create).to.throw('Must initialize with firebase application');
+      const create = () => new helpers.FirebaseReporting({});
+      expect(create).to.throw('Must initialize with firebase reference');
   	});
 
     it('should initialize with firebase', () => {
-      const create = () => new FirebaseReporting({
-        firebase: newFirebaseApp()
+      const create = () => new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
       });
       expect(create).to.not.throw;
   	});
 
-    it('should initialize with default paths', () => {
-      const reporting = new FirebaseReporting({
-        firebase: newFirebaseApp()
+    it('should initialize with default separator', () => {
+      const reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
       });
-      expect(reporting.paths.data).to.equal('data');
-      expect(reporting.paths.reporting).to.equal('reporting');
+      expect(reporting.separator).to.equal('~~');
   	});
 
-    it('should initialize with custom paths', () => {
-      const reporting = new FirebaseReporting({
-        firebase: newFirebaseApp(),
-        dataPath: 'dataPath',
-        reportingPath: 'reportingPath'
+    it('should initialize with custom separator', () => {
+      const reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient(),
+        separator: '``'
       });
-      expect(reporting.paths.data).to.equal('dataPath');
-      expect(reporting.paths.reporting).to.equal('reportingPath');
+      expect(reporting.separator).to.equal('``');
   	});
 
-    it('should initialize with default filters', () => {
-      const reporting = new FirebaseReporting({
-        firebase: newFirebaseApp()
+    it('should initialize with no filters', () => {
+      const reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
       });
-      expect(reporting.filters).to.deep.equal([]);
+      expect(Object.keys(reporting.filters).length).to.equal(0);
   	});
 
-    it('should initialize with custom filters', () => {
-      const reporting = new FirebaseReporting({
-        firebase: newFirebaseApp(),
-        filters: [['uid']]
+    it('should initialize with no metrics', () => {
+      const reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
       });
-      expect(reporting.filters.length).to.equal(1);
-      expect(reporting.filters[0]).to.deep.equal(['uid']);
+      expect(Object.keys(reporting.metrics).length).to.equal(0);
   	});
 
     it('should initialize with default evaluators', () => {
-      const reporting = new FirebaseReporting({
-        firebase: newFirebaseApp()
+      const reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
       });
 
       expect(Object.keys(reporting.evaluators).length).to.equal(8);
@@ -158,5 +110,148 @@ describe('Firebase Reporting', () => {
       expect(reporting.evaluators['multi']).to.be.a('function');
       expect(reporting.evaluators['div']).to.be.a('function');
   	});
+  });
+
+  describe('addEvaluator', () => {
+    let reporting;
+
+    beforeEach(() => {
+      reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
+      });
+    });
+
+    it('should throw when name not provided', () => {
+      expect(() => reporting.addEvaluator(''))
+        .to.throw('evaluator name is required');
+  	});
+
+    it('should throw when function not provided', () => {
+      expect(() => reporting.addEvaluator('name', 'name'))
+        .to.throw('method must be a function which takes in 2 arguments and outputs the new metric value');
+  	});
+
+    it('should add to evalutor list', () => {
+      const method = () => true;
+      expect(() => reporting.addEvaluator('name', method)).to.not.throw();
+
+      expect(Object.keys(reporting.evaluators).length).to.equal(9);
+      expect(reporting.evaluators['name']).to.be.equal(method);
+  	});
+  });
+
+  describe('addFilter', () => {
+    let reporting;
+
+    beforeEach(() => {
+      reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
+      });
+    });
+
+    it('should throw when name not provided', () => {
+      expect(() => reporting.addFilter(''))
+        .to.throw('filter name is required');
+  	});
+
+    it('should throw when name is default', () => {
+      expect(() => reporting.addFilter('default'))
+        .to.throw('cannot override default filter');
+  	});
+
+    it('should throw when array not provided', () => {
+      expect(() => reporting.addFilter('name', 'name'))
+        .to.throw('props should be an array of property name which exist on the raw data being stored');
+  	});
+
+    it('should add to filter list', () => {
+      const fitler = ['name'];
+      expect(() => reporting.addFilter('name', fitler)).to.not.throw();
+
+      expect(Object.keys(reporting.filters).length).to.equal(1);
+      expect(reporting.filters['name']).to.be.equal(fitler);
+  	});
+  });
+
+  describe('addMetric', () => {
+    let reporting;
+
+    beforeEach(() => {
+      reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
+      });
+    });
+
+    it('should throw when name not provided', () => {
+      expect(() => reporting.addMetric(''))
+        .to.throw('property name is required');
+  	});
+
+    it('should throw when array not provided', () => {
+      expect(() => reporting.addMetric('name', 'name'))
+        .to.throw('metrics must be an array of evaluator names');
+  	});
+
+    it('should throw when array does not contain valid evaluators', () => {
+      expect(() => reporting.addMetric('name', ['name']))
+        .to.throw('metrics contains one or more invalid evaluators');
+  	});
+
+    it('should add to metrics list', () => {
+      const metrics = ['sum'];
+      expect(() => reporting.addMetric('name', metrics)).to.not.throw();
+
+      expect(Object.keys(reporting.metrics).length).to.equal(1);
+      expect(reporting.metrics['name']).to.be.equal(metrics);
+  	});
+  });
+
+  describe('saveMetrics', () => {
+    let reporting, client;
+
+    beforeEach(() => {
+      firebaseServer = helpers.newFirebaseServer();
+      client = helpers.newFirebaseClient();
+      reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
+      });
+    });
+
+    describe('no metrics configured', () => {
+      it('should store no metrics ', (done) => {
+        const data = {a: 1};
+
+        reporting.saveMetrics(data).then(() => {
+          client.once('value').then((snap) => {
+            expect(snap.val()).to.be.null;
+            done();
+          });
+        });
+    	});
+    });
+
+    describe('default filter', () => {
+      it('should store metrics', (done) => {
+        reporting.addMetric('value', ['min']);
+        const data = {value: 1};
+
+        reporting.saveMetrics(data).then(() => {
+          client.child('default').child('default').child('value~~min').once('value').then((snap) => {
+            expect(snap.val()).to.be.equal(1);
+            done();
+          }).catch((err) => {
+            done(new Error(err));
+          });
+        });
+    	});
+    });
+  });
+
+  describe('evaluators', () => {
+    ['min', 'max', 'first', 'last', 'sum', 'diff', 'multi', 'div'].forEach((e) => {
+      describe(e, () => {
+        require('./evaluators/' + e);
+      });
+    });
   });
 });
