@@ -111,14 +111,14 @@ describe('select', () => {
   });
 });
 
-describe('total', () => {
+describe('count', () => {
   it('should retrieve metric with default filter', (done) => {
     reporting.addMetric('value', ['div']);
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where().div('value').total()).to.become(1)
+        expect(reporting.where().div('value').count()).to.become(1)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -132,7 +132,7 @@ describe('total', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where('custom').div('value').total()).to.become(3)
+        expect(reporting.where('custom').div('value').count()).to.become(3)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));

@@ -102,7 +102,7 @@ class MetricQuery {
     return query;
   }
 
-  total() {
+  count() {
     const query = new CountQuery();
     query.filterRef = this.filterRef;
     query.filterKey = this.filterKey;
