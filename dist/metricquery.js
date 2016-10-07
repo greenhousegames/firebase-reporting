@@ -134,8 +134,8 @@ var MetricQuery = function () {
       return query;
     }
   }, {
-    key: 'total',
-    value: function total() {
+    key: 'count',
+    value: function count() {
       var query = new _countquery2.default();
       query.filterRef = this.filterRef;
       query.filterKey = this.filterKey;
