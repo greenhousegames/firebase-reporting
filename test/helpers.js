@@ -14,7 +14,7 @@ var firebase = proxyquire('firebase', {
   }
 });
 var FirebaseServer = require('firebase-server');
-var FirebaseReporting = require('../src');
+var FirebaseReporting = require('../dist');
 
 const mod = {
   port: 45000,
