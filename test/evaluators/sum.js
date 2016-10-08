@@ -274,6 +274,38 @@ describe('between', () => {
 });
 
 describe('during', () => {
+  it('should retrieve metrics as object', (done) => {
+    reporting.addMetric('value', ['sum']);
+    reporting.enableRetainer('second', 'value', ['sum']);
+    const data = [{value: 50},{value: 2},{value: 5}];
+    const start = new Date().getTime() - 1000;
+    const end = new Date().getTime() + 1000;
+
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where().sum('value').during(start, end, 'second').values()).to.eventually.be.an('object')
+      ])).notify(done);
+    }).catch((err) => {
+      done(new Error(err));
+    });
+  });
+
+  it('should retrieve metrics as array', (done) => {
+    reporting.addMetric('value', ['sum']);
+    reporting.enableRetainer('second', 'value', ['sum']);
+    const data = [{value: 50},{value: 2},{value: 5}];
+    const start = new Date().getTime() - 1000;
+    const end = new Date().getTime() + 1000;
+
+    reporting.saveMetrics(data).then(() => {
+      expect(rsvp.all([
+        expect(reporting.where().sum('value').during(start, end, 'second').valuesAsArray()).to.eventually.be.an('array')
+      ])).notify(done);
+    }).catch((err) => {
+      done(new Error(err));
+    });
+  });
+
   it('should retrieve metrics with default filter', (done) => {
     reporting.addMetric('value', ['sum']);
     reporting.enableRetainer('minute', 'value', ['sum']);
@@ -281,13 +313,15 @@ describe('during', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
     const start = new Date().getTime() - 1000*60*60;
     const end = new Date().getTime() + 1000*60*60;
-    const bucketminute = reporting.getRetainerBucketKey('minute');
-    const bucketsecond = reporting.getRetainerBucketKey('second');
+    const bucketsecond = reporting.getEmptyBuckets(start, end, 'second');
+    bucketsecond[reporting.getRetainerBucketKey('second')] = 57;
+    const bucketminute = reporting.getEmptyBuckets(start, end, 'minute');
+    bucketminute[reporting.getRetainerBucketKey('minute')] = 57;
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where().sum('value').during(start, end, 'minute').values()).to.become([{bucket: bucketminute, value: 57}]),
-        expect(reporting.where().sum('value').during(start, end, 'second').values()).to.become([{bucket: bucketsecond, value: 57}])
+        expect(reporting.where().sum('value').during(start, end, 'minute').values()).to.become(bucketminute),
+        expect(reporting.where().sum('value').during(start, end, 'second').values()).to.become(bucketsecond)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -302,15 +336,21 @@ describe('during', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
     const start = new Date().getTime() - 1000*60*60;
     const end = new Date().getTime() + 1000*60*60;
-    const bucketminute = reporting.getRetainerBucketKey('minute');
-    const bucketsecond = reporting.getRetainerBucketKey('second');
+    const bucketsecond1 = reporting.getEmptyBuckets(start, end, 'second');
+    bucketsecond1[reporting.getRetainerBucketKey('second')] = 55;
+    const bucketsecond2 = reporting.getEmptyBuckets(start, end, 'second');
+    bucketsecond2[reporting.getRetainerBucketKey('second')] = 2;
+    const bucketminute1 = reporting.getEmptyBuckets(start, end, 'minute');
+    bucketminute1[reporting.getRetainerBucketKey('minute')] = 55;
+    const bucketminute2 = reporting.getEmptyBuckets(start, end, 'minute');
+    bucketminute2[reporting.getRetainerBucketKey('minute')] = 2;
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where('custom', { mode: 1 }).sum('value').during(start, end, 'minute').values()).to.become([{bucket: bucketminute, value: 55}]),
-        expect(reporting.where('custom', { mode: 2 }).sum('value').during(start, end, 'minute').values()).to.become([{bucket: bucketminute, value: 2}]),
-        expect(reporting.where('custom', { mode: 1 }).sum('value').during(start, end, 'second').values()).to.become([{bucket: bucketsecond, value: 55}]),
-        expect(reporting.where('custom', { mode: 2 }).sum('value').during(start, end, 'second').values()).to.become([{bucket: bucketsecond, value: 2}])
+        expect(reporting.where('custom', { mode: 1 }).sum('value').during(start, end, 'minute').values()).to.become(bucketminute1),
+        expect(reporting.where('custom', { mode: 2 }).sum('value').during(start, end, 'minute').values()).to.become(bucketminute2),
+        expect(reporting.where('custom', { mode: 1 }).sum('value').during(start, end, 'second').values()).to.become(bucketsecond1),
+        expect(reporting.where('custom', { mode: 2 }).sum('value').during(start, end, 'second').values()).to.become(bucketsecond2)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -325,22 +365,19 @@ describe('during', () => {
     const data2 = [{value: 5},{value: 2}];
     const start = new Date().getTime() - 1000*60*60;
     const end = new Date().getTime() + 1000*60*60;
-    const bucketsecond1 = reporting.getRetainerBucketKey('second');
-    const bucketminute = reporting.getRetainerBucketKey('minute');
+    const bucketsecond = reporting.getEmptyBuckets(start, end, 'second');
+    bucketsecond[reporting.getRetainerBucketKey('second')] = 52;
+    const bucketminute = reporting.getEmptyBuckets(start, end, 'minute');
+    bucketminute[reporting.getRetainerBucketKey('minute')] = 59;
 
     reporting.saveMetrics(data1).then(() => {
       setTimeout(() => {
-        const bucketsecond2 = reporting.getRetainerBucketKey('second');
+        bucketsecond[reporting.getRetainerBucketKey('second')] = 7;
 
         reporting.saveMetrics(data2).then(() => {
           expect(rsvp.all([
-            expect(reporting.where().sum('value').during(start, end, 'second').values()).to.become([
-              { bucket: bucketsecond1, value: 52 },
-              { bucket: bucketsecond2, value: 7 }
-            ]),
-            expect(reporting.where().sum('value').during(start, end, 'minute').values()).to.become([
-              { bucket: bucketminute, value: 59 }
-            ])
+            expect(reporting.where().sum('value').during(start, end, 'second').values()).to.become(bucketsecond),
+            expect(reporting.where().sum('value').during(start, end, 'minute').values()).to.become(bucketminute)
           ])).notify(done);
         }).catch((err) => {
           done(new Error(err));

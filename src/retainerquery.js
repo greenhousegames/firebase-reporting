@@ -24,15 +24,40 @@ class RetainerQuery {
       const endBucket = this.reporting.getRetainerBucketKey(this.retainer, this.retainerEnd);
       const query = this.filterRef.child('retainers').child(this.filterKey).child(this.retainer).orderByKey().startAt(startBucket).endAt(endBucket);
       query.once('value').then((snapshot) => {
-        const data = [];
+        const buckets = {};
         snapshot.forEach((snap) => {
           const val = snap.child(this.metricKey).val();
           if (typeof val !== 'undefined') {
-            data.push({
-              bucket: snap.key,
-              value: val
-            });
+            buckets[snap.key] = val;
           }
+        });
+
+        // fill buckets
+        let currBucket = startBucket;
+        while (currBucket <= endBucket) {
+          if (!buckets[currBucket]) {
+            buckets[currBucket] = 0;
+          }
+          currBucket++;
+        }
+        resolve(buckets);
+      }).catch(reject);
+    });
+    return promise;
+  }
+
+  valuesAsArray() {
+    const promise = new rsvp.Promise((resolve, reject) => {
+      this.values().then((values) => {
+        const keys = Object.keys(values).sort();
+        const data = [];
+        const duration = this.reporting.retainers[this.retainer].duration;
+        keys.forEach((key) => {
+          data.push({
+            bucket: key,
+            timestamp: (+key) * duration,
+            value: values[key]
+          });
         });
         resolve(data);
       }).catch(reject);

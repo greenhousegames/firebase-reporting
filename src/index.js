@@ -218,6 +218,21 @@ class FirebaseReporting {
     return key;
   }
 
+  getEmptyBuckets(start, end, retainerName) {
+    const retainer = this.retainers[retainerName];
+    const startBucket = Math.floor(start / retainer.duration);
+    const endBucket = Math.floor(end / retainer.duration);
+    const buckets = {};
+
+    let currBucket = startBucket;
+    while (currBucket <= endBucket) {
+      buckets[currBucket.toString()] = 0;
+      currBucket++;
+    }
+
+    return buckets;
+  }
+
   getRetainerBucketKey(retainerName, time) {
     const retainer = this.retainers[retainerName];
     time = time || new Date().getTime();
