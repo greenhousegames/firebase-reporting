@@ -271,6 +271,22 @@ var FirebaseReporting = function () {
       return key;
     }
   }, {
+    key: 'getEmptyBuckets',
+    value: function getEmptyBuckets(start, end, retainerName) {
+      var retainer = this.retainers[retainerName];
+      var startBucket = Math.floor(start / retainer.duration);
+      var endBucket = Math.floor(end / retainer.duration);
+      var buckets = {};
+
+      var currBucket = startBucket;
+      while (currBucket <= endBucket) {
+        buckets[currBucket.toString()] = 0;
+        currBucket++;
+      }
+
+      return buckets;
+    }
+  }, {
     key: 'getRetainerBucketKey',
     value: function getRetainerBucketKey(retainerName, time) {
       var retainer = this.retainers[retainerName];
