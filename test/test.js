@@ -491,7 +491,7 @@ describe('Firebase Reporting', () => {
   	});
   });
 
-  describe('where.xxx.during', () => {
+  describe('filter.xxx.during', () => {
     let reporting;
 
     beforeEach(() => {
@@ -510,7 +510,7 @@ describe('Firebase Reporting', () => {
 
       reporting.saveMetrics(data).then(() => {
         expect(rsvp.all([
-          expect(reporting.where().sum('value').during('second').valuesAsObject()).to.eventually.be.an('object')
+          expect(reporting.filter().sum('value').during('second').valuesAsObject()).to.eventually.be.an('object')
         ])).notify(done);
       }).catch((err) => {
         done(new Error(err));
@@ -526,7 +526,7 @@ describe('Firebase Reporting', () => {
 
       reporting.saveMetrics(data).then(() => {
         expect(rsvp.all([
-          expect(reporting.where().sum('value').during('second').values()).to.eventually.be.an('array')
+          expect(reporting.filter().sum('value').during('second').values()).to.eventually.be.an('array')
         ])).notify(done);
       }).catch((err) => {
         done(new Error(err));
@@ -535,7 +535,7 @@ describe('Firebase Reporting', () => {
   });
 
   ['min', 'max', 'first', 'last', 'sum', 'diff', 'multi', 'div'].forEach((x) => {
-    describe('where.' + x, () => {
+    describe('filter.' + x, () => {
       require('./evaluators/' + x);
     });
   });

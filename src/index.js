@@ -158,7 +158,7 @@ class FirebaseReporting {
     }
   }
 
-  where(filterName, filterData) {
+  filter(filterName, filterData) {
     filterName = filterName || 'default';
     const query = new ReportQuery(this);
     if (filterData) {

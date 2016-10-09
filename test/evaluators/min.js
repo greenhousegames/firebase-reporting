@@ -31,7 +31,7 @@ describe('evaluator', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where().min('value').select(1)).to.become([50])
+        expect(reporting.filter().min('value').select(1)).to.become([50])
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -44,7 +44,7 @@ describe('evaluator', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where().min('value').select(1)).to.become([2])
+        expect(reporting.filter().min('value').select(1)).to.become([2])
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -59,7 +59,7 @@ describe('value', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where().min('value').value()).to.become(50)
+        expect(reporting.filter().min('value').value()).to.become(50)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -73,8 +73,8 @@ describe('value', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where('custom', { mode: 1 }).min('value').value()).to.become(50),
-        expect(reporting.where('custom', { mode: 2 }).min('value').value()).to.become(null)
+        expect(reporting.filter('custom', { mode: 1 }).min('value').value()).to.become(50),
+        expect(reporting.filter('custom', { mode: 2 }).min('value').value()).to.become(null)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -89,7 +89,7 @@ describe('select', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where().min('value').select(1)).to.become([50])
+        expect(reporting.filter().min('value').select(1)).to.become([50])
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -103,7 +103,7 @@ describe('select', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where('custom').min('value').select(1)).to.become([50])
+        expect(reporting.filter('custom').min('value').select(1)).to.become([50])
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -118,7 +118,7 @@ describe('count', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where().min('value').count()).to.become(1)
+        expect(reporting.filter().min('value').count()).to.become(1)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -132,7 +132,7 @@ describe('count', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where('custom').min('value').count()).to.become(3)
+        expect(reporting.filter('custom').min('value').count()).to.become(3)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -147,8 +147,8 @@ describe('lesser', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where().min('value').lesser(5).count()).to.become(1),
-        expect(reporting.where().min('value').lesser(1).count()).to.become(0)
+        expect(reporting.filter().min('value').lesser(5).count()).to.become(1),
+        expect(reporting.filter().min('value').lesser(1).count()).to.become(0)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -162,8 +162,8 @@ describe('lesser', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where('custom').min('value').lesser(50).count()).to.become(2),
-        expect(reporting.where('custom').min('value').lesser(2).count()).to.become(1)
+        expect(reporting.filter('custom').min('value').lesser(50).count()).to.become(2),
+        expect(reporting.filter('custom').min('value').lesser(2).count()).to.become(1)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -178,8 +178,8 @@ describe('greater', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where().min('value').greater(2).count()).to.become(1),
-        expect(reporting.where().min('value').greater(3).count()).to.become(0)
+        expect(reporting.filter().min('value').greater(2).count()).to.become(1),
+        expect(reporting.filter().min('value').greater(3).count()).to.become(0)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -193,8 +193,8 @@ describe('greater', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where('custom').min('value').greater(5).count()).to.become(1),
-        expect(reporting.where('custom').min('value').greater(0).count()).to.become(2)
+        expect(reporting.filter('custom').min('value').greater(5).count()).to.become(1),
+        expect(reporting.filter('custom').min('value').greater(0).count()).to.become(2)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -209,9 +209,9 @@ describe('equal', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where().min('value').equal(2).count()).to.become(1),
-        expect(reporting.where().min('value').equal(5).count()).to.become(0),
-        expect(reporting.where().min('value').equal(50).count()).to.become(0)
+        expect(reporting.filter().min('value').equal(2).count()).to.become(1),
+        expect(reporting.filter().min('value').equal(5).count()).to.become(0),
+        expect(reporting.filter().min('value').equal(50).count()).to.become(0)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -225,9 +225,9 @@ describe('equal', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where('custom').min('value').equal(50).count()).to.become(0),
-        expect(reporting.where('custom').min('value').equal(2).count()).to.become(1),
-        expect(reporting.where('custom').min('value').equal(5).count()).to.become(1)
+        expect(reporting.filter('custom').min('value').equal(50).count()).to.become(0),
+        expect(reporting.filter('custom').min('value').equal(2).count()).to.become(1),
+        expect(reporting.filter('custom').min('value').equal(5).count()).to.become(1)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -242,8 +242,8 @@ describe('between', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where().min('value').between(0, 5).count()).to.become(1),
-        expect(reporting.where().min('value').between(10, 50).count()).to.become(0)
+        expect(reporting.filter().min('value').between(0, 5).count()).to.become(1),
+        expect(reporting.filter().min('value').between(10, 50).count()).to.become(0)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -257,11 +257,11 @@ describe('between', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where('custom').min('value').between(10, 50).count()).to.become(0),
-        expect(reporting.where('custom').min('value').between(0, 50).count()).to.become(2),
-        expect(reporting.where('custom').min('value').between(1, 5).count()).to.become(2),
-        expect(reporting.where('custom').min('value').between(1, 2).count()).to.become(1),
-        expect(reporting.where('custom').min('value').between(4, 5).count()).to.become(1)
+        expect(reporting.filter('custom').min('value').between(10, 50).count()).to.become(0),
+        expect(reporting.filter('custom').min('value').between(0, 50).count()).to.become(2),
+        expect(reporting.filter('custom').min('value').between(1, 5).count()).to.become(2),
+        expect(reporting.filter('custom').min('value').between(1, 2).count()).to.become(1),
+        expect(reporting.filter('custom').min('value').between(4, 5).count()).to.become(1)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -284,8 +284,8 @@ describe('during', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where().min('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute),
-        expect(reporting.where().min('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond)
+        expect(reporting.filter().min('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute),
+        expect(reporting.filter().min('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -311,10 +311,10 @@ describe('during', () => {
 
     reporting.saveMetrics(data).then(() => {
       expect(rsvp.all([
-        expect(reporting.where('custom', { mode: 1 }).min('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute1),
-        expect(reporting.where('custom', { mode: 2 }).min('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute2),
-        expect(reporting.where('custom', { mode: 1 }).min('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond1),
-        expect(reporting.where('custom', { mode: 2 }).min('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond2)
+        expect(reporting.filter('custom', { mode: 1 }).min('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute1),
+        expect(reporting.filter('custom', { mode: 2 }).min('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute2),
+        expect(reporting.filter('custom', { mode: 1 }).min('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond1),
+        expect(reporting.filter('custom', { mode: 2 }).min('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond2)
       ])).notify(done);
     }).catch((err) => {
       done(new Error(err));
@@ -340,8 +340,8 @@ describe('during', () => {
 
         reporting.saveMetrics(data2).then(() => {
           expect(rsvp.all([
-            expect(reporting.where().min('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond),
-            expect(reporting.where().min('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute)
+            expect(reporting.filter().min('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond),
+            expect(reporting.filter().min('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute)
           ])).notify(done);
         }).catch((err) => {
           done(new Error(err));
