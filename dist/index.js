@@ -205,8 +205,8 @@ var FirebaseReporting = function () {
       }
     }
   }, {
-    key: 'where',
-    value: function where(filterName, filterData) {
+    key: 'filter',
+    value: function filter(filterName, filterData) {
       filterName = filterName || 'default';
       var query = new _reportquery2.default(this);
       if (filterData) {
