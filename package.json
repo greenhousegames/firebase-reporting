@@ -1,6 +1,6 @@
 {
   "name": "firebase-reporting",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "The client-side only solution to reporting with Firebase",
   "keywords": "firebase, reporting, report, analytics, metrics",
   "main": "dist/index.js",
