@@ -1,3 +1,4 @@
+var rsvp = require('rsvp');
 var chai = require('chai');
 var chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
@@ -99,18 +100,12 @@ describe('Firebase Reporting', () => {
       const reporting = new helpers.FirebaseReporting({
         firebase: helpers.newFirebaseClient()
       });
-      expect(Object.keys(reporting.retainers).length).to.equal(11);
+      expect(Object.keys(reporting.retainers).length).to.equal(5);
       expect(reporting.retainers['second'].duration).to.be.equal(1000);
-      expect(reporting.retainers['half-minute'].duration).to.be.equal(1000 * 60 / 2);
       expect(reporting.retainers['minute'].duration).to.be.equal(1000 * 60);
-      expect(reporting.retainers['half-hour'].duration).to.be.equal(1000 * 60 * 60 / 2);
       expect(reporting.retainers['hour'].duration).to.be.equal(1000 * 60 * 60);
-      expect(reporting.retainers['half-day'].duration).to.be.equal(1000 * 60 * 60 * 24 / 2);
       expect(reporting.retainers['day'].duration).to.be.equal(1000 * 60 * 60 * 24);
       expect(reporting.retainers['week'].duration).to.be.equal(1000 * 60 * 60 * 24 * 7);
-      expect(reporting.retainers['2weeks'].duration).to.be.equal(1000 * 60 * 60 * 24 * 7 * 2);
-      expect(reporting.retainers['3weeks'].duration).to.be.equal(1000 * 60 * 60 * 24 * 7 * 3);
-      expect(reporting.retainers['4weeks'].duration).to.be.equal(1000 * 60 * 60 * 24 * 7 * 4);
   	});
 
     it('should initialize with default evaluators', () => {
@@ -247,8 +242,34 @@ describe('Firebase Reporting', () => {
       const duration = 1000;
       expect(() => reporting.addRetainer('name', duration)).to.not.throw();
 
-      expect(Object.keys(reporting.retainers).length).to.equal(12);
+      expect(Object.keys(reporting.retainers).length).to.equal(6);
       expect(reporting.retainers['name'].duration).to.be.equal(duration);
+  	});
+  });
+
+  describe('getRetainer', () => {
+    let reporting;
+
+    beforeEach(() => {
+      reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
+      });
+    });
+
+    it('should throw when name not provided', () => {
+      expect(() => reporting.getRetainer('')).to.throw;
+  	});
+
+    it('should retrieve existing retainer', () => {
+      expect(reporting.getRetainer('second').duration).to.equal(1000);
+      expect(reporting.getRetainer('minute').duration).to.equal(1000*60);
+      expect(reporting.getRetainer('hour').duration).to.equal(1000*60*60);
+  	});
+
+    it('should retrieve multiple of retainer', () => {
+      expect(reporting.getRetainer('30second').duration).to.equal(30000);
+      expect(reporting.getRetainer('2minute').duration).to.equal(1000*60*2);
+      expect(reporting.getRetainer('4hour').duration).to.equal(1000*60*60*4);
   	});
   });
 
@@ -468,6 +489,49 @@ describe('Firebase Reporting', () => {
         });
       });
   	});
+  });
+
+  describe('where.xxx.during', () => {
+    let reporting;
+
+    beforeEach(() => {
+      firebaseServer = helpers.newFirebaseServer();
+      reporting = new helpers.FirebaseReporting({
+        firebase: helpers.newFirebaseClient()
+      });
+    });
+
+    it('should retrieve metrics as object', (done) => {
+      reporting.addMetric('value', ['sum']);
+      reporting.enableRetainer('second', 'value', ['sum']);
+      const data = [{value: 50},{value: 2},{value: 5}];
+      const start = new Date().getTime() - 1000;
+      const end = new Date().getTime() + 1000;
+
+      reporting.saveMetrics(data).then(() => {
+        expect(rsvp.all([
+          expect(reporting.where().sum('value').during('second').valuesAsObject()).to.eventually.be.an('object')
+        ])).notify(done);
+      }).catch((err) => {
+        done(new Error(err));
+      });
+    });
+
+    it('should retrieve metrics as array', (done) => {
+      reporting.addMetric('value', ['sum']);
+      reporting.enableRetainer('second', 'value', ['sum']);
+      const data = [{value: 50},{value: 2},{value: 5}];
+      const start = new Date().getTime() - 1000;
+      const end = new Date().getTime() + 1000;
+
+      reporting.saveMetrics(data).then(() => {
+        expect(rsvp.all([
+          expect(reporting.where().sum('value').during('second').values()).to.eventually.be.an('array')
+        ])).notify(done);
+      }).catch((err) => {
+        done(new Error(err));
+      });
+    });
   });
 
   ['min', 'max', 'first', 'last', 'sum', 'diff', 'multi', 'div'].forEach((x) => {

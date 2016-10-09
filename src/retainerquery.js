@@ -12,46 +12,50 @@ class RetainerQuery {
     this.retainerEnd = null;
   }
 
-  setRetainer(type, start, end) {
+  setRetainer(type) {
     this.retainer = type;
-    this.retainerStart = start;
-    this.retainerEnd = end;
   }
 
-  values() {
+  range(start, end) {
+    this.retainerStart = start;
+    this.retainerEnd = end;
+    return this;
+  }
+
+  valuesAsObject(fill) {
     const promise = new rsvp.Promise((resolve, reject) => {
-      const startBucket = this.reporting.getRetainerBucketKey(this.retainer, this.retainerStart);
-      const endBucket = this.reporting.getRetainerBucketKey(this.retainer, this.retainerEnd);
-      const query = this.filterRef.child('retainers').child(this.filterKey).child(this.retainer).orderByKey().startAt(startBucket).endAt(endBucket);
+      let query = this.filterRef.child('retainers').child(this.filterKey).child(this.retainer).orderByKey();
+      if (this.retainerStart) {
+        const startBucket = this.reporting.getRetainerBucketKey(this.retainer, this.retainerStart);
+        query = query.startAt(startBucket);
+      }
+      if (this.retainerEnd) {
+        const endBucket = this.reporting.getRetainerBucketKey(this.retainer, this.retainerEnd);
+        query = query.endAt(endBucket);
+      }
       query.once('value').then((snapshot) => {
-        const buckets = {};
+        let buckets = {};
+        if (fill && this.retainerStart && this.retainerEnd) {
+          buckets = this.reporting.getEmptyBuckets(this.retainer, this.retainerStart, this.retainerEnd);
+        }
         snapshot.forEach((snap) => {
           const val = snap.child(this.metricKey).val();
           if (typeof val !== 'undefined') {
             buckets[snap.key] = val;
           }
         });
-
-        // fill buckets
-        let currBucket = startBucket;
-        while (currBucket <= endBucket) {
-          if (!buckets[currBucket]) {
-            buckets[currBucket] = 0;
-          }
-          currBucket++;
-        }
         resolve(buckets);
       }).catch(reject);
     });
     return promise;
   }
 
-  valuesAsArray() {
+  values(fill) {
     const promise = new rsvp.Promise((resolve, reject) => {
-      this.values().then((values) => {
+      this.valuesAsObject(fill).then((values) => {
         const keys = Object.keys(values).sort();
         const data = [];
-        const duration = this.reporting.retainers[this.retainer].duration;
+        const duration = this.reporting.getRetainer(this.retainer).duration;
         keys.forEach((key) => {
           data.push({
             bucket: key,

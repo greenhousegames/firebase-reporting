@@ -110,12 +110,12 @@ class MetricQuery {
     return query.count();
   }
 
-  during(start, end, retainer) {
+  during(retainer) {
     const query = new RetainerQuery(this.reporting);
     query.filterRef = this.filterRef;
     query.filterKey = this.filterKey;
     query.metricKey = this.metricKey;
-    query.setRetainer(retainer, start, end);
+    query.setRetainer(retainer);
     return query;
   }
 }

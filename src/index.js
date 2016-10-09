@@ -27,16 +27,10 @@ class FirebaseReporting {
     this.addEvaluator('div', (newVal, oldVal) => oldVal / newVal);
 
     this.addRetainer('second', 1000);
-    this.addRetainer('half-minute', 30000);
     this.addRetainer('minute', 60000);
-    this.addRetainer('half-hour', 1800000);
     this.addRetainer('hour', 3600000);
-    this.addRetainer('half-day', 43200000);
     this.addRetainer('day', 86400000);
     this.addRetainer('week', 604800000);
-    this.addRetainer('2weeks', 1209600000);
-    this.addRetainer('3weeks', 1814400000);
-    this.addRetainer('4weeks', 2419200000);
   }
 
   addEvaluator(name, method) {
@@ -95,6 +89,22 @@ class FirebaseReporting {
     this.retainers[name] = {
       duration: duration
     };
+  }
+
+  getRetainer(name) {
+    // check if retainer name is multiple of existing retainer
+    const matches = /^([0-9]+)/.exec(name);
+    if (matches) {
+      // name is multiple of existing retainer
+      const val = parseInt(matches[0]);
+      const parsedName = name.substr(matches[0].length);
+      const duration = val * this.retainers[parsedName].duration;
+      return {
+        duration: duration
+      };
+    } else {
+      return this.retainers[name];
+    }
   }
 
   enableRetainer(retainer, prop, metrics) {
@@ -218,8 +228,8 @@ class FirebaseReporting {
     return key;
   }
 
-  getEmptyBuckets(start, end, retainerName) {
-    const retainer = this.retainers[retainerName];
+  getEmptyBuckets(retainerName, start, end) {
+    const retainer = this.getRetainer(retainerName);
     const startBucket = Math.floor(start / retainer.duration);
     const endBucket = Math.floor(end / retainer.duration);
     const buckets = {};
@@ -234,7 +244,7 @@ class FirebaseReporting {
   }
 
   getRetainerBucketKey(retainerName, time) {
-    const retainer = this.retainers[retainerName];
+    const retainer = this.getRetainer(retainerName);
     time = time || new Date().getTime();
     return Math.floor(time / retainer.duration).toString();
   }
