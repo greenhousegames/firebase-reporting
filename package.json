@@ -1,7 +1,8 @@
 {
   "name": "firebase-reporting",
   "version": "0.0.13",
-  "description": "",
+  "description": "The client-side only solution to reporting with Firebase",
+  "keywords": "firebase, reporting, report, analytics, metrics",
   "main": "dist/index.js",
   "scripts": {
     "prebuild": "eslint src/** && (rm -r dist || true) && mkdir dist",
@@ -14,14 +15,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/greenhousegames/firebase-reporting.git"
+    "url": "git+https://github.com/soumak77/firebase-reporting.git"
   },
   "author": "Greenhouse Games, LLC",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/greenhousegames/firebase-reporting/issues"
+    "url": "https://github.com/soumak77/firebase-reporting/issues"
   },
-  "homepage": "https://github.com/greenhousegames/firebase-reporting#readme",
+  "homepage": "https://github.com/soumak77/firebase-reporting#readme",
   "dependencies": {
     "firebase": "~3.4.0",
     "rsvp": "^3.2.1"
