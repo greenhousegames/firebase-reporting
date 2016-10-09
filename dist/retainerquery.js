@@ -26,52 +26,57 @@ var RetainerQuery = function () {
 
   _createClass(RetainerQuery, [{
     key: 'setRetainer',
-    value: function setRetainer(type, start, end) {
+    value: function setRetainer(type) {
       this.retainer = type;
-      this.retainerStart = start;
-      this.retainerEnd = end;
     }
   }, {
-    key: 'values',
-    value: function values() {
+    key: 'range',
+    value: function range(start, end) {
+      this.retainerStart = start;
+      this.retainerEnd = end;
+      return this;
+    }
+  }, {
+    key: 'valuesAsObject',
+    value: function valuesAsObject(fill) {
       var _this = this;
 
       var promise = new _rsvp2.default.Promise(function (resolve, reject) {
-        var startBucket = _this.reporting.getRetainerBucketKey(_this.retainer, _this.retainerStart);
-        var endBucket = _this.reporting.getRetainerBucketKey(_this.retainer, _this.retainerEnd);
-        var query = _this.filterRef.child('retainers').child(_this.filterKey).child(_this.retainer).orderByKey().startAt(startBucket).endAt(endBucket);
+        var query = _this.filterRef.child('retainers').child(_this.filterKey).child(_this.retainer).orderByKey();
+        if (_this.retainerStart) {
+          var startBucket = _this.reporting.getRetainerBucketKey(_this.retainer, _this.retainerStart);
+          query = query.startAt(startBucket);
+        }
+        if (_this.retainerEnd) {
+          var endBucket = _this.reporting.getRetainerBucketKey(_this.retainer, _this.retainerEnd);
+          query = query.endAt(endBucket);
+        }
         query.once('value').then(function (snapshot) {
           var buckets = {};
+          if (fill && _this.retainerStart && _this.retainerEnd) {
+            buckets = _this.reporting.getEmptyBuckets(_this.retainer, _this.retainerStart, _this.retainerEnd);
+          }
           snapshot.forEach(function (snap) {
             var val = snap.child(_this.metricKey).val();
             if (typeof val !== 'undefined') {
               buckets[snap.key] = val;
             }
           });
-
-          // fill buckets
-          var currBucket = startBucket;
-          while (currBucket <= endBucket) {
-            if (!buckets[currBucket]) {
-              buckets[currBucket] = 0;
-            }
-            currBucket++;
-          }
           resolve(buckets);
         }).catch(reject);
       });
       return promise;
     }
   }, {
-    key: 'valuesAsArray',
-    value: function valuesAsArray() {
+    key: 'values',
+    value: function values(fill) {
       var _this2 = this;
 
       var promise = new _rsvp2.default.Promise(function (resolve, reject) {
-        _this2.values().then(function (values) {
+        _this2.valuesAsObject(fill).then(function (values) {
           var keys = Object.keys(values).sort();
           var data = [];
-          var duration = _this2.reporting.retainers[_this2.retainer].duration;
+          var duration = _this2.reporting.getRetainer(_this2.retainer).duration;
           keys.forEach(function (key) {
             data.push({
               bucket: key,

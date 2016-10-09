@@ -144,12 +144,12 @@ var MetricQuery = function () {
     }
   }, {
     key: 'during',
-    value: function during(start, end, retainer) {
+    value: function during(retainer) {
       var query = new _retainerquery2.default(this.reporting);
       query.filterRef = this.filterRef;
       query.filterKey = this.filterKey;
       query.metricKey = this.metricKey;
-      query.setRetainer(retainer, start, end);
+      query.setRetainer(retainer);
       return query;
     }
   }]);

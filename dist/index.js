@@ -58,16 +58,10 @@ var FirebaseReporting = function () {
     });
 
     this.addRetainer('second', 1000);
-    this.addRetainer('half-minute', 30000);
     this.addRetainer('minute', 60000);
-    this.addRetainer('half-hour', 1800000);
     this.addRetainer('hour', 3600000);
-    this.addRetainer('half-day', 43200000);
     this.addRetainer('day', 86400000);
     this.addRetainer('week', 604800000);
-    this.addRetainer('2weeks', 1209600000);
-    this.addRetainer('3weeks', 1814400000);
-    this.addRetainer('4weeks', 2419200000);
   }
 
   _createClass(FirebaseReporting, [{
@@ -133,6 +127,23 @@ var FirebaseReporting = function () {
       this.retainers[name] = {
         duration: duration
       };
+    }
+  }, {
+    key: 'getRetainer',
+    value: function getRetainer(name) {
+      // check if retainer name is multiple of existing retainer
+      var matches = /^([0-9]+)/.exec(name);
+      if (matches) {
+        // name is multiple of existing retainer
+        var val = parseInt(matches[0]);
+        var parsedName = name.substr(matches[0].length);
+        var duration = val * this.retainers[parsedName].duration;
+        return {
+          duration: duration
+        };
+      } else {
+        return this.retainers[name];
+      }
     }
   }, {
     key: 'enableRetainer',
@@ -272,8 +283,8 @@ var FirebaseReporting = function () {
     }
   }, {
     key: 'getEmptyBuckets',
-    value: function getEmptyBuckets(start, end, retainerName) {
-      var retainer = this.retainers[retainerName];
+    value: function getEmptyBuckets(retainerName, start, end) {
+      var retainer = this.getRetainer(retainerName);
       var startBucket = Math.floor(start / retainer.duration);
       var endBucket = Math.floor(end / retainer.duration);
       var buckets = {};
@@ -289,7 +300,7 @@ var FirebaseReporting = function () {
   }, {
     key: 'getRetainerBucketKey',
     value: function getRetainerBucketKey(retainerName, time) {
-      var retainer = this.retainers[retainerName];
+      var retainer = this.getRetainer(retainerName);
       time = time || new Date().getTime();
       return Math.floor(time / retainer.duration).toString();
     }
