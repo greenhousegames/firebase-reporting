@@ -9,7 +9,33 @@ Firebase Reporting provides the ability to generate reports on data stored in fi
 
 Firebase reporting is designed to provide simple metrics on the data.  For complex reporting, it is suggested to use an alternate database for better performance.
 
-## Templates
-Use the following templates to get started quickly with Firebase Reporting:
+## Setup
+### Templates
+Use one of the following templates to get started quickly with Firebase Reporting:
 - [JQuery Template](https://github.com/soumak77/firebase-reporting-jquery)
 - [Angular Template](https://github.com/soumak77/firebase-reporting-angular)
+
+### Manual
+Add Firebase Reporting to an existing project using npm:
+
+```bash
+npm install firebase-reporting --save
+```
+
+## Integration
+Firebase Reporting can be included in a project using the following code:
+```javascript
+var FirebaseReporting = require('firebase-reporting');
+var reporting = new FirebaseReporting(config);
+```
+
+The FirebaseReporting constructor takes the following configuration object:
+```
+{
+  firebase: 'object', // reference in firebase for where to store results
+  separator: 'string' // string used as separator in firebase database keys (defaults to '~~')
+}
+```
+
+## API
+...
