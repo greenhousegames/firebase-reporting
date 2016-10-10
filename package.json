@@ -17,7 +17,7 @@
     "type": "git",
     "url": "git+https://github.com/soumak77/firebase-reporting.git"
   },
-  "author": "Greenhouse Games, LLC",
+  "author": "Brian Soumakian",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/soumak77/firebase-reporting/issues"
