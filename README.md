@@ -1,7 +1,7 @@
 # Firebase Reporting
 The client-side only solution to reporting with [Firebase](https://firebase.google.com)
 
-[![Build Status](https://travis-ci.org/soumak77/firebase-reporting.svg)](https://travis-ci.org/soumak77/firebase-reporting)
+[![Build Status](https://travis-ci.org/greenhousegames/firebase-reporting.svg)](https://travis-ci.org/greenhousegames/firebase-reporting)
 [![npm version](https://badge.fury.io/js/firebase-reporting.svg)](https://badge.fury.io/js/firebase-reporting)
 
 ## Overview
@@ -12,8 +12,8 @@ Firebase reporting is designed to provide simple metrics on the data.  For compl
 ## Setup
 ### Templates
 Use one of the following templates to get started quickly with Firebase Reporting:
-- [JQuery Template](https://github.com/soumak77/firebase-reporting-jquery)
-- [Angular Template](https://github.com/soumak77/firebase-reporting-angular)
+- [JQuery Template](https://github.com/greenhousegames/firebase-reporting-jquery)
+- [Angular Template](https://github.com/greenhousegames/firebase-reporting-angular)
 
 ### Manual
 Add Firebase Reporting to an existing project using npm:
@@ -25,7 +25,7 @@ npm install firebase-reporting --save
 ## Integration
 Firebase Reporting can be included in a project using the following code:
 ```javascript
-var FirebaseReporting = require('firebase-reporting');
+var FirebaseReporting = require('@greenhousegames/firebase-reporting');
 var reporting = new FirebaseReporting(config);
 ```
 
