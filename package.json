@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/greenhousegames/firebase-reporting#readme",
   "dependencies": {
-    "firebase": "~3.4.0"
+    "firebase": "^3.4.0"
   },
   "devDependencies": {
     "babel-cli": "^6.11.4",
