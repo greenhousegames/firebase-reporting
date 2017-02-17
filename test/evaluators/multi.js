@@ -1,4 +1,3 @@
-var rsvp = require('rsvp');
 var chai = require('chai');
 var chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
@@ -30,7 +29,7 @@ describe('evaluator', () => {
     const data = {value: 50};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().multi('value').select(1)).to.become([50])
       ])).notify(done);
     }).catch((err) => {
@@ -43,7 +42,7 @@ describe('evaluator', () => {
     const data = [{value: 50}, {value: 2}, {value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().multi('value').select(1)).to.become([500])
       ])).notify(done);
     }).catch((err) => {
@@ -58,7 +57,7 @@ describe('value', () => {
     const data = {value: 50};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().multi('value').value()).to.become(50)
       ])).notify(done);
     }).catch((err) => {
@@ -72,7 +71,7 @@ describe('value', () => {
     const data = {value: 50, mode: 1};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom', { mode: 1 }).multi('value').value()).to.become(50),
         expect(reporting.filter('custom', { mode: 2 }).multi('value').value()).to.become(null)
       ])).notify(done);
@@ -88,7 +87,7 @@ describe('select', () => {
     const data = {value: 50};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().multi('value').select(1)).to.become([50])
       ])).notify(done);
     }).catch((err) => {
@@ -102,7 +101,7 @@ describe('select', () => {
     const data = {value: 50, mode: 1};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').multi('value').select(1)).to.become([50])
       ])).notify(done);
     }).catch((err) => {
@@ -117,7 +116,7 @@ describe('count', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().multi('value').count()).to.become(1)
       ])).notify(done);
     }).catch((err) => {
@@ -131,7 +130,7 @@ describe('count', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 3}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').multi('value').count()).to.become(3)
       ])).notify(done);
     }).catch((err) => {
@@ -146,7 +145,7 @@ describe('lesser', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().multi('value').lesser(500).count()).to.become(1),
         expect(reporting.filter().multi('value').lesser(50).count()).to.become(0),
         expect(reporting.filter().multi('value').lesser(1).count()).to.become(0)
@@ -162,7 +161,7 @@ describe('lesser', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').multi('value').lesser(500).count()).to.become(2),
         expect(reporting.filter('custom').multi('value').lesser(50).count()).to.become(1),
         expect(reporting.filter('custom').multi('value').lesser(2).count()).to.become(1)
@@ -179,7 +178,7 @@ describe('greater', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().multi('value').greater(2).count()).to.become(1),
         expect(reporting.filter().multi('value').greater(50).count()).to.become(1),
         expect(reporting.filter().multi('value').greater(500).count()).to.become(1),
@@ -196,7 +195,7 @@ describe('greater', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').multi('value').greater(500).count()).to.become(0),
         expect(reporting.filter('custom').multi('value').greater(0).count()).to.become(2),
         expect(reporting.filter('custom').multi('value').greater(5).count()).to.become(1)
@@ -213,7 +212,7 @@ describe('equal', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().multi('value').equal(2).count()).to.become(0),
         expect(reporting.filter().multi('value').equal(5).count()).to.become(0),
         expect(reporting.filter().multi('value').equal(50).count()).to.become(0),
@@ -230,7 +229,7 @@ describe('equal', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').multi('value').equal(500).count()).to.become(0),
         expect(reporting.filter('custom').multi('value').equal(250).count()).to.become(1),
         expect(reporting.filter('custom').multi('value').equal(2).count()).to.become(1),
@@ -248,7 +247,7 @@ describe('between', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().multi('value').between(0, 5).count()).to.become(0),
         expect(reporting.filter().multi('value').between(10, 50).count()).to.become(0),
         expect(reporting.filter().multi('value').between(100, 500).count()).to.become(1)
@@ -264,7 +263,7 @@ describe('between', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').multi('value').between(10, 50).count()).to.become(0),
         expect(reporting.filter('custom').multi('value').between(0, 50).count()).to.become(1),
         expect(reporting.filter('custom').multi('value').between(1, 5).count()).to.become(1),
@@ -292,7 +291,7 @@ describe('during', () => {
     bucketminute[reporting.getRetainerBucketKey('minute')] = 500;
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().multi('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute),
         expect(reporting.filter().multi('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond)
       ])).notify(done);
@@ -319,7 +318,7 @@ describe('during', () => {
     bucketminute2[reporting.getRetainerBucketKey('minute')] = 2;
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom', { mode: 1 }).multi('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute1),
         expect(reporting.filter('custom', { mode: 2 }).multi('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute2),
         expect(reporting.filter('custom', { mode: 1 }).multi('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond1),
@@ -348,7 +347,7 @@ describe('during', () => {
         bucketsecond[reporting.getRetainerBucketKey('second')] = 10;
 
         reporting.saveMetrics(data2).then(() => {
-          expect(rsvp.all([
+          expect(Promise.all([
             expect(reporting.filter().multi('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond),
             expect(reporting.filter().multi('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute)
           ])).notify(done);

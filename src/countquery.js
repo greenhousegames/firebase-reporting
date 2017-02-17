@@ -1,5 +1,3 @@
-import rsvp from 'rsvp';
-
 class CountQuery {
   constructor() {
     this.filterRef = null;
@@ -18,7 +16,7 @@ class CountQuery {
   }
 
   count() {
-    const promise = new rsvp.Promise((resolve, reject) => {
+    const promise = new Promise((resolve, reject) => {
       let query = this.filterRef.child('metrics').orderByChild(this.metricKey);
       switch (this.comparision) {
         case 'lesser':

@@ -1,4 +1,3 @@
-import rsvp from 'rsvp';
 import CountQuery from './countquery';
 import RetainerQuery from './retainerquery';
 
@@ -23,7 +22,7 @@ class MetricQuery {
       throw 'Metric key not set';
     }
     const query = this.filterRef.child('metrics').child(this.filterKey).child(this.metricKey);
-    const promise = new rsvp.Promise((resolve, reject) => {
+    const promise = new Promise((resolve, reject) => {
       query.once('value').then((snapshot) => {
         resolve(snapshot.val());
       }).catch(reject);
@@ -42,7 +41,7 @@ class MetricQuery {
       query = query.limitToFirst(limit);
     }
 
-    const promise = new rsvp.Promise((resolve) => {
+    const promise = new Promise((resolve) => {
       const values = [];
       query.on('child_added', (snapshot) => {
         values.push(snapshot.child(this.metricKey).val());

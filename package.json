@@ -1,5 +1,5 @@
 {
-  "name": "firebase-reporting",
+  "name": "@greenhousegames/firebase-reporting",
   "version": "0.0.15",
   "description": "The client-side only solution to reporting with Firebase",
   "keywords": "firebase, reporting, report, analytics, metrics",
@@ -15,17 +15,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/soumak77/firebase-reporting.git"
+    "url": "git+https://github.com/greenhousegames/firebase-reporting.git"
   },
-  "author": "Brian Soumakian",
+  "author": "Greenhouse Games, LLC",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/soumak77/firebase-reporting/issues"
+    "url": "https://github.com/greenhousegames/firebase-reporting/issues"
   },
-  "homepage": "https://github.com/soumak77/firebase-reporting#readme",
+  "homepage": "https://github.com/greenhousegames/firebase-reporting#readme",
   "dependencies": {
-    "firebase": "~3.4.0",
-    "rsvp": "^3.2.1"
+    "firebase": "~3.4.0"
   },
   "devDependencies": {
     "babel-cli": "^6.11.4",

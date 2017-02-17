@@ -1,4 +1,3 @@
-var rsvp = require('rsvp');
 var chai = require('chai');
 var chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
@@ -30,7 +29,7 @@ describe('evaluator', () => {
     const data = {value: 50};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().max('value').select(1)).to.become([50])
       ])).notify(done);
     }).catch((err) => {
@@ -43,7 +42,7 @@ describe('evaluator', () => {
     const data = [{value: 50}, {value: 2}, {value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().max('value').select(1)).to.become([50])
       ])).notify(done);
     }).catch((err) => {
@@ -58,7 +57,7 @@ describe('value', () => {
     const data = {value: 50};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().max('value').value()).to.become(50)
       ])).notify(done);
     }).catch((err) => {
@@ -72,7 +71,7 @@ describe('value', () => {
     const data = {value: 50, mode: 1};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom', { mode: 1 }).max('value').value()).to.become(50),
         expect(reporting.filter('custom', { mode: 2 }).max('value').value()).to.become(null)
       ])).notify(done);
@@ -88,7 +87,7 @@ describe('select', () => {
     const data = {value: 50};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().max('value').select(1)).to.become([50])
       ])).notify(done);
     }).catch((err) => {
@@ -102,7 +101,7 @@ describe('select', () => {
     const data = {value: 50, mode: 1};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').max('value').select(1)).to.become([50])
       ])).notify(done);
     }).catch((err) => {
@@ -117,7 +116,7 @@ describe('count', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().max('value').count()).to.become(1)
       ])).notify(done);
     }).catch((err) => {
@@ -131,7 +130,7 @@ describe('count', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 3}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').max('value').count()).to.become(3)
       ])).notify(done);
     }).catch((err) => {
@@ -146,7 +145,7 @@ describe('lesser', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().max('value').lesser(5).count()).to.become(0),
         expect(reporting.filter().max('value').lesser(50).count()).to.become(1)
       ])).notify(done);
@@ -161,7 +160,7 @@ describe('lesser', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').max('value').lesser(50).count()).to.become(2),
         expect(reporting.filter('custom').max('value').lesser(5).count()).to.become(1)
       ])).notify(done);
@@ -177,7 +176,7 @@ describe('greater', () => {
     const data = [{value: 50},{value: 2},{value: 3}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().max('value').greater(2).count()).to.become(1),
         expect(reporting.filter().max('value').greater(3).count()).to.become(1),
         expect(reporting.filter().max('value').greater(51).count()).to.become(0)
@@ -193,7 +192,7 @@ describe('greater', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').max('value').greater(2).count()).to.become(2),
         expect(reporting.filter('custom').max('value').greater(5).count()).to.become(1),
         expect(reporting.filter('custom').max('value').greater(50).count()).to.become(1)
@@ -210,7 +209,7 @@ describe('equal', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().max('value').equal(2).count()).to.become(0),
         expect(reporting.filter().max('value').equal(5).count()).to.become(0),
         expect(reporting.filter().max('value').equal(50).count()).to.become(1)
@@ -226,7 +225,7 @@ describe('equal', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').max('value').equal(50).count()).to.become(1),
         expect(reporting.filter('custom').max('value').equal(2).count()).to.become(1),
         expect(reporting.filter('custom').max('value').equal(5).count()).to.become(0)
@@ -243,7 +242,7 @@ describe('between', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().max('value').between(0, 5).count()).to.become(0),
         expect(reporting.filter().max('value').between(10, 50).count()).to.become(1)
       ])).notify(done);
@@ -258,7 +257,7 @@ describe('between', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').max('value').between(10, 50).count()).to.become(1),
         expect(reporting.filter('custom').max('value').between(0, 50).count()).to.become(2),
         expect(reporting.filter('custom').max('value').between(1, 5).count()).to.become(1),
@@ -285,7 +284,7 @@ describe('during', () => {
     bucketminute[reporting.getRetainerBucketKey('minute')] = 50;
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().max('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute),
         expect(reporting.filter().max('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond)
       ])).notify(done);
@@ -312,7 +311,7 @@ describe('during', () => {
     bucketminute2[reporting.getRetainerBucketKey('minute')] = 2;
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom', { mode: 1 }).max('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute1),
         expect(reporting.filter('custom', { mode: 2 }).max('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute2),
         expect(reporting.filter('custom', { mode: 1 }).max('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond1),
@@ -341,7 +340,7 @@ describe('during', () => {
         bucketsecond[reporting.getRetainerBucketKey('second')] = 5;
 
         reporting.saveMetrics(data2).then(() => {
-          expect(rsvp.all([
+          expect(Promise.all([
             expect(reporting.filter().max('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond),
             expect(reporting.filter().max('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute)
           ])).notify(done);

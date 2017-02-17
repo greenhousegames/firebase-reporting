@@ -1,4 +1,3 @@
-var rsvp = require('rsvp');
 var chai = require('chai');
 var chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
@@ -509,7 +508,7 @@ describe('Firebase Reporting', () => {
       const end = new Date().getTime() + 1000;
 
       reporting.saveMetrics(data).then(() => {
-        expect(rsvp.all([
+        expect(Promise.all([
           expect(reporting.filter().sum('value').during('second').valuesAsObject()).to.eventually.be.an('object')
         ])).notify(done);
       }).catch((err) => {
@@ -525,7 +524,7 @@ describe('Firebase Reporting', () => {
       const end = new Date().getTime() + 1000;
 
       reporting.saveMetrics(data).then(() => {
-        expect(rsvp.all([
+        expect(Promise.all([
           expect(reporting.filter().sum('value').during('second').values()).to.eventually.be.an('array')
         ])).notify(done);
       }).catch((err) => {

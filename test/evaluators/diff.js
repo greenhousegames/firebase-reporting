@@ -1,4 +1,3 @@
-var rsvp = require('rsvp');
 var chai = require('chai');
 var chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
@@ -30,7 +29,7 @@ describe('evaluator', () => {
     const data = {value: 50};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().diff('value').select(1)).to.become([50])
       ])).notify(done);
     }).catch((err) => {
@@ -43,7 +42,7 @@ describe('evaluator', () => {
     const data = [{value: 50}, {value: 2}, {value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().diff('value').select(1)).to.become([43])
       ])).notify(done);
     }).catch((err) => {
@@ -58,7 +57,7 @@ describe('value', () => {
     const data = {value: 50};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().diff('value').value()).to.become(50)
       ])).notify(done);
     }).catch((err) => {
@@ -72,7 +71,7 @@ describe('value', () => {
     const data = {value: 50, mode: 1};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom', { mode: 1 }).diff('value').value()).to.become(50),
         expect(reporting.filter('custom', { mode: 2 }).diff('value').value()).to.become(null)
       ])).notify(done);
@@ -88,7 +87,7 @@ describe('select', () => {
     const data = {value: 50};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().diff('value').select(1)).to.become([50])
       ])).notify(done);
     }).catch((err) => {
@@ -102,7 +101,7 @@ describe('select', () => {
     const data = {value: 50, mode: 1};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').diff('value').select(1)).to.become([50])
       ])).notify(done);
     }).catch((err) => {
@@ -117,7 +116,7 @@ describe('count', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().diff('value').count()).to.become(1)
       ])).notify(done);
     }).catch((err) => {
@@ -131,7 +130,7 @@ describe('count', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 3}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').diff('value').count()).to.become(3)
       ])).notify(done);
     }).catch((err) => {
@@ -146,7 +145,7 @@ describe('lesser', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().diff('value').lesser(50).count()).to.become(1),
         expect(reporting.filter().diff('value').lesser(40).count()).to.become(0)
       ])).notify(done);
@@ -161,7 +160,7 @@ describe('lesser', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').diff('value').lesser(50).count()).to.become(2),
         expect(reporting.filter('custom').diff('value').lesser(2).count()).to.become(1),
         expect(reporting.filter('custom').diff('value').lesser(0).count()).to.become(0)
@@ -178,7 +177,7 @@ describe('greater', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().diff('value').greater(2).count()).to.become(1),
         expect(reporting.filter().diff('value').greater(45).count()).to.become(0)
       ])).notify(done);
@@ -193,7 +192,7 @@ describe('greater', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').diff('value').greater(40).count()).to.become(1),
         expect(reporting.filter('custom').diff('value').greater(0).count()).to.become(2),
         expect(reporting.filter('custom').diff('value').greater(3).count()).to.become(1),
@@ -211,7 +210,7 @@ describe('equal', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().diff('value').equal(2).count()).to.become(0),
         expect(reporting.filter().diff('value').equal(5).count()).to.become(0),
         expect(reporting.filter().diff('value').equal(50).count()).to.become(0),
@@ -228,7 +227,7 @@ describe('equal', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').diff('value').equal(50).count()).to.become(0),
         expect(reporting.filter('custom').diff('value').equal(2).count()).to.become(1),
         expect(reporting.filter('custom').diff('value').equal(5).count()).to.become(0),
@@ -246,7 +245,7 @@ describe('between', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().diff('value').between(0, 5).count()).to.become(0),
         expect(reporting.filter().diff('value').between(10, 50).count()).to.become(1)
       ])).notify(done);
@@ -261,7 +260,7 @@ describe('between', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').diff('value').between(10, 50).count()).to.become(1),
         expect(reporting.filter('custom').diff('value').between(0, 50).count()).to.become(2),
         expect(reporting.filter('custom').diff('value').between(1, 5).count()).to.become(1),
@@ -288,7 +287,7 @@ describe('during', () => {
     bucketminute[reporting.getRetainerBucketKey('minute')] = 43;
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().diff('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute),
         expect(reporting.filter().diff('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond)
       ])).notify(done);
@@ -319,7 +318,7 @@ describe('during', () => {
     const bucketsecond = reporting.getRetainerBucketKey('second');
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom', { mode: 1 }).diff('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute1),
         expect(reporting.filter('custom', { mode: 2 }).diff('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute2),
         expect(reporting.filter('custom', { mode: 1 }).diff('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond1),
@@ -348,7 +347,7 @@ describe('during', () => {
         bucketsecond[reporting.getRetainerBucketKey('second')] = 3;
 
         reporting.saveMetrics(data2).then(() => {
-          expect(rsvp.all([
+          expect(Promise.all([
             expect(reporting.filter().diff('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond),
             expect(reporting.filter().diff('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute)
           ])).notify(done);

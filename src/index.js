@@ -1,4 +1,3 @@
-import rsvp from 'rsvp';
 import ReportQuery from './reportquery';
 
 class FirebaseReporting {
@@ -152,9 +151,9 @@ class FirebaseReporting {
     });
 
     if (promises.length > 0) {
-      return rsvp.all(promises);
+      return Promise.all(promises);
     } else {
-      return new rsvp.Promise((resolve) => resolve());
+      return new Promise((resolve) => resolve());
     }
   }
 

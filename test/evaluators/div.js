@@ -1,4 +1,3 @@
-var rsvp = require('rsvp');
 var chai = require('chai');
 var chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
@@ -30,7 +29,7 @@ describe('evaluator', () => {
     const data = {value: 50};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().div('value').select(1)).to.become([50])
       ])).notify(done);
     }).catch((err) => {
@@ -43,7 +42,7 @@ describe('evaluator', () => {
     const data = [{value: 50}, {value: 2}, {value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().div('value').select(1)).to.become([5])
       ])).notify(done);
     }).catch((err) => {
@@ -58,7 +57,7 @@ describe('value', () => {
     const data = {value: 50};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().div('value').value()).to.become(50)
       ])).notify(done);
     }).catch((err) => {
@@ -72,7 +71,7 @@ describe('value', () => {
     const data = {value: 50, mode: 1};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom', { mode: 1 }).div('value').value()).to.become(50),
         expect(reporting.filter('custom', { mode: 2 }).div('value').value()).to.become(null)
       ])).notify(done);
@@ -88,7 +87,7 @@ describe('select', () => {
     const data = {value: 50};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().div('value').select(1)).to.become([50])
       ])).notify(done);
     }).catch((err) => {
@@ -102,7 +101,7 @@ describe('select', () => {
     const data = {value: 50, mode: 1};
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').div('value').select(1)).to.become([50])
       ])).notify(done);
     }).catch((err) => {
@@ -117,7 +116,7 @@ describe('count', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().div('value').count()).to.become(1)
       ])).notify(done);
     }).catch((err) => {
@@ -131,7 +130,7 @@ describe('count', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 3}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').div('value').count()).to.become(3)
       ])).notify(done);
     }).catch((err) => {
@@ -146,7 +145,7 @@ describe('lesser', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().div('value').lesser(50).count()).to.become(1),
         expect(reporting.filter().div('value').lesser(5).count()).to.become(1),
         expect(reporting.filter().div('value').lesser(2).count()).to.become(0),
@@ -163,7 +162,7 @@ describe('lesser', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').div('value').lesser(50).count()).to.become(2),
         expect(reporting.filter('custom').div('value').lesser(2).count()).to.become(1),
         expect(reporting.filter('custom').div('value').lesser(5).count()).to.become(1),
@@ -181,7 +180,7 @@ describe('greater', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().div('value').greater(2).count()).to.become(1),
         expect(reporting.filter().div('value').greater(3).count()).to.become(1),
         expect(reporting.filter().div('value').greater(10).count()).to.become(0)
@@ -197,7 +196,7 @@ describe('greater', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').div('value').greater(50).count()).to.become(0),
         expect(reporting.filter('custom').div('value').greater(10).count()).to.become(1),
         expect(reporting.filter('custom').div('value').greater(5).count()).to.become(1),
@@ -215,7 +214,7 @@ describe('equal', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().div('value').equal(2).count()).to.become(0),
         expect(reporting.filter().div('value').equal(5).count()).to.become(1),
         expect(reporting.filter().div('value').equal(50).count()).to.become(0)
@@ -231,7 +230,7 @@ describe('equal', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').div('value').equal(50).count()).to.become(0),
         expect(reporting.filter('custom').div('value').equal(2).count()).to.become(1),
         expect(reporting.filter('custom').div('value').equal(5).count()).to.become(0),
@@ -249,7 +248,7 @@ describe('between', () => {
     const data = [{value: 50},{value: 2},{value: 5}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().div('value').between(0, 5).count()).to.become(1),
         expect(reporting.filter().div('value').between(10, 50).count()).to.become(0)
       ])).notify(done);
@@ -264,7 +263,7 @@ describe('between', () => {
     const data = [{value: 50, mode: 1},{value: 2, mode: 2},{value: 5, mode: 1}];
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom').div('value').between(10, 50).count()).to.become(1),
         expect(reporting.filter('custom').div('value').between(0, 50).count()).to.become(2),
         expect(reporting.filter('custom').div('value').between(1, 5).count()).to.become(1),
@@ -291,7 +290,7 @@ describe('during', () => {
     bucketminute[reporting.getRetainerBucketKey('minute')] = 5;
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter().div('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute),
         expect(reporting.filter().div('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond)
       ])).notify(done);
@@ -318,7 +317,7 @@ describe('during', () => {
     bucketminute2[reporting.getRetainerBucketKey('minute')] = 2;
 
     reporting.saveMetrics(data).then(() => {
-      expect(rsvp.all([
+      expect(Promise.all([
         expect(reporting.filter('custom', { mode: 1 }).div('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute1),
         expect(reporting.filter('custom', { mode: 2 }).div('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute2),
         expect(reporting.filter('custom', { mode: 1 }).div('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond1),
@@ -347,7 +346,7 @@ describe('during', () => {
         bucketsecond[reporting.getRetainerBucketKey('second')] = 5/2;
 
         reporting.saveMetrics(data2).then(() => {
-          expect(rsvp.all([
+          expect(Promise.all([
             expect(reporting.filter().div('value').during('second').range(start, end).valuesAsObject(true)).to.become(bucketsecond),
             expect(reporting.filter().div('value').during('minute').range(start, end).valuesAsObject(true)).to.become(bucketminute)
           ])).notify(done);

@@ -1,5 +1,3 @@
-import rsvp from 'rsvp';
-
 class RetainerQuery {
   constructor(reporting) {
     this.reporting = reporting;
@@ -23,7 +21,7 @@ class RetainerQuery {
   }
 
   valuesAsObject(fill) {
-    const promise = new rsvp.Promise((resolve, reject) => {
+    const promise = new Promise((resolve, reject) => {
       let query = this.filterRef.child('retainers').child(this.filterKey).child(this.retainer).orderByKey();
       if (this.retainerStart) {
         const startBucket = this.reporting.getRetainerBucketKey(this.retainer, this.retainerStart);
@@ -51,7 +49,7 @@ class RetainerQuery {
   }
 
   values(fill) {
-    const promise = new rsvp.Promise((resolve, reject) => {
+    const promise = new Promise((resolve, reject) => {
       this.valuesAsObject(fill).then((values) => {
         const keys = Object.keys(values).sort();
         const data = [];
