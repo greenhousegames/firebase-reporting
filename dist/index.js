@@ -2,10 +2,6 @@
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _rsvp = require('rsvp');
-
-var _rsvp2 = _interopRequireDefault(_rsvp);
-
 var _reportquery = require('./reportquery');
 
 var _reportquery2 = _interopRequireDefault(_reportquery);
@@ -197,9 +193,9 @@ var FirebaseReporting = function () {
       });
 
       if (promises.length > 0) {
-        return _rsvp2.default.all(promises);
+        return Promise.all(promises);
       } else {
-        return new _rsvp2.default.Promise(function (resolve) {
+        return new Promise(function (resolve) {
           return resolve();
         });
       }

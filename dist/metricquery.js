@@ -2,10 +2,6 @@
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _rsvp = require('rsvp');
-
-var _rsvp2 = _interopRequireDefault(_rsvp);
-
 var _countquery = require('./countquery');
 
 var _countquery2 = _interopRequireDefault(_countquery);
@@ -44,7 +40,7 @@ var MetricQuery = function () {
         throw 'Metric key not set';
       }
       var query = this.filterRef.child('metrics').child(this.filterKey).child(this.metricKey);
-      var promise = new _rsvp2.default.Promise(function (resolve, reject) {
+      var promise = new Promise(function (resolve, reject) {
         query.once('value').then(function (snapshot) {
           resolve(snapshot.val());
         }).catch(reject);
@@ -66,7 +62,7 @@ var MetricQuery = function () {
         query = query.limitToFirst(limit);
       }
 
-      var promise = new _rsvp2.default.Promise(function (resolve) {
+      var promise = new Promise(function (resolve) {
         var values = [];
         query.on('child_added', function (snapshot) {
           values.push(snapshot.child(_this.metricKey).val());

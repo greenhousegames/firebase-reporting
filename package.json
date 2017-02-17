@@ -1,6 +1,6 @@
 {
   "name": "@greenhousegames/firebase-reporting",
-  "version": "0.0.15",
+  "version": "0.1.0",
   "description": "The client-side only solution to reporting with Firebase",
   "keywords": "firebase, reporting, report, analytics, metrics",
   "main": "dist/index.js",
