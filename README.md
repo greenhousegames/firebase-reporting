@@ -4,6 +4,10 @@ The client-side only solution to reporting with [Firebase](https://firebase.goog
 [![Build Status](https://travis-ci.org/greenhousegames/firebase-reporting.svg)](https://travis-ci.org/greenhousegames/firebase-reporting)
 [![npm version](https://badge.fury.io/js/%40greenhousegames%2Ffirebase-reporting.svg)](https://badge.fury.io/js/%40greenhousegames%2Ffirebase-reporting)
 
+## Live Products
+This library is being used by the following apps:
+- [Smash Dot](https://www.greenhousegames.com/games/smashdot.html)
+
 ## Overview
 Firebase Reporting provides the ability to generate reports on data stored in firebase without needing an alternate reporting database or server!  Firebase reporting does all metric calculations on the client using transactions in firebase, ensuring the metrics are reliably calculated regardless of the number of clients attempting to updated the reports.
 
