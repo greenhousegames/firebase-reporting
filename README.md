@@ -6,7 +6,7 @@ The client-side only solution to reporting with [Firebase](https://firebase.goog
 
 ## Live Products
 This library is being used by the following apps:
-- [Smash Dot](https://www.greenhousegames.com/games/smashdot.html)
+- [Blpb Clobber](https://www.greenhousegames.com/games/blobclobber)
 
 ## Overview
 Firebase Reporting provides the ability to generate reports on data stored in firebase without needing an alternate reporting database or server!  Firebase reporting does all metric calculations on the client using transactions in firebase, ensuring the metrics are reliably calculated regardless of the number of clients attempting to updated the reports.
